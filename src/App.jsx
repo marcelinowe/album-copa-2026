@@ -265,7 +265,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate }) {
 }
 
 // ─── ALBUM PAGE ───────────────────────────────────────────────────────────────
-function AlbumPage({ col, onUpdate }) {
+function AlbumPage({ col, onUpdate, onNavigate }) {
   const [search,     setSearch]     = useState("");
   const [openTeamId, setOpenTeamId] = useState(null);
 
@@ -288,14 +288,26 @@ function AlbumPage({ col, onUpdate }) {
       )})).filter(g=>g.teams.length>0)
     : GROUPS;
 
+  // cards: Tenho → "doubles" (have list), Faltam → "reports", Repetidas → "doubles"
+  const statCards = [
+    { label:"Tenho",    value:have,       nav:"have",    hint:"Ver lista" },
+    { label:"Faltam",   value:miss,       nav:"miss",    hint:"Ver lista" },
+    { label:"Repetidas",value:dbl,        nav:"doubles", hint:"Ver lista" },
+    { label:"Completo", value:pct+"%",    nav:null,      hint:null        },
+  ];
+
   return (
     <>
       {/* stats */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6, padding:"10px 12px 6px" }}>
-        {[["Tenho",have],["Faltam",miss],["Repetidas",dbl],["Completo",pct+"%"]].map(([l,v])=>(
-          <div key={l} style={{ background:card, border:`1px solid ${bdr}`, borderRadius:13, padding:"10px 4px", textAlign:"center" }}>
-            <div style={{ fontFamily:font.title, fontSize:"1.5rem", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>{v}</div>
-            <div style={{ fontSize:".55rem", color:muted, fontWeight:800, textTransform:"uppercase", letterSpacing:".3px", marginTop:2 }}>{l}</div>
+        {statCards.map(({label,value,nav})=>(
+          <div key={label}
+            onClick={()=>nav && onNavigate(nav)}
+            style={{ background:card, border:`1px solid ${nav ? "rgba(255,215,0,0.3)" : bdr}`, borderRadius:13, padding:"10px 4px", textAlign:"center", cursor: nav ? "pointer" : "default", WebkitTapHighlightColor:"transparent", position:"relative", transition:"border-color .15s" }}
+          >
+            <div style={{ fontFamily:font.title, fontSize:"1.5rem", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>{value}</div>
+            <div style={{ fontSize:".55rem", color: nav ? gold : muted, fontWeight:800, textTransform:"uppercase", letterSpacing:".3px", marginTop:2 }}>{label}</div>
+            {nav && <div style={{ position:"absolute", bottom:4, left:"50%", transform:"translateX(-50%)", width:16, height:2, background:`linear-gradient(90deg,${gold},${gold2})`, borderRadius:99, opacity:.6 }} />}
           </div>
         ))}
       </div>
@@ -493,14 +505,160 @@ function BackupPage({ col, onImport, onToast }) {
   );
 }
 
-// ─── APP ROOT ─────────────────────────────────────────────────────────────────
-const TABS = [
-  {id:"album",   ico:"📋", label:"Álbum"},
-  {id:"doubles", ico:"⭐", label:"Repetidas"},
-  {id:"reports", ico:"📊", label:"Relatórios"},
-  {id:"backup",  ico:"💾", label:"Backup"},
-];
+// ─── HAVE PAGE ───────────────────────────────────────────────────────────────
+function HavePage({ col }) {
+  const sections = [];
+  for (const grp of GROUPS) {
+    const teamItems = [];
+    for (const team of grp.teams) {
+      const items = team.stickers.filter(s => (col[s.id]||0) > 0);
+      if (items.length) teamItems.push({ team, items });
+    }
+    if (teamItems.length) sections.push({ grp, teamItems });
+  }
+  const total = sections.reduce((a,s)=>a+s.teamItems.reduce((b,t)=>b+t.items.length,0),0);
+  return (
+    <div>
+      <div style={{ padding:"16px 12px 8px" }}>
+        <h2 style={{ fontFamily:font.title, fontSize:"1.5rem", letterSpacing:"2px" }}>✅ TENHO</h2>
+        <p style={{ color:muted, fontSize:".8rem", fontWeight:700, marginTop:2 }}>{total} figurinha{total!==1?"s":""} na sua coleção</p>
+      </div>
+      {sections.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"50px 20px", color:muted }}>
+          <div style={{ fontSize:46, marginBottom:10 }}>📦</div>
+          <p style={{ fontSize:".88rem", fontWeight:700, lineHeight:1.6 }}>Nenhuma figurinha ainda!<br/>Comece marcando suas figurinhas.</p>
+        </div>
+      ) : sections.map(({grp,teamItems})=>(
+        <div key={grp.id}>
+          <div style={{ padding:"8px 12px", fontFamily:font.title, fontSize:".85rem", letterSpacing:1, color:gold, background:card, borderTop:`1px solid ${bdr}`, borderBottom:`1px solid ${bdr}`, margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          {teamItems.map(({team,items})=>(
+            <div key={team.id}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px 3px", fontFamily:font.body, fontSize:".75rem", fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:muted,fontWeight:700}}>({items.length}/{team.stickers.length})</span></div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:5, padding:"0 12px 6px" }}>
+                {items.map(s=>(
+                  <div key={s.id} style={{ background:"linear-gradient(135deg,rgba(0,200,83,.12),rgba(0,200,83,.03))", border:"1.5px solid rgba(0,200,83,.3)", borderRadius:7, padding:"4px 9px", fontSize:".7rem", fontWeight:800, color:green }}>
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ height:14 }} />
+    </div>
+  );
+}
 
+// ─── MISS PAGE ────────────────────────────────────────────────────────────────
+function MissPage({ col }) {
+  const sections = [];
+  for (const grp of GROUPS) {
+    const teamItems = [];
+    for (const team of grp.teams) {
+      const items = team.stickers.filter(s => (col[s.id]||0) === 0);
+      if (items.length) teamItems.push({ team, items });
+    }
+    if (teamItems.length) sections.push({ grp, teamItems });
+  }
+  const total = sections.reduce((a,s)=>a+s.teamItems.reduce((b,t)=>b+t.items.length,0),0);
+  return (
+    <div>
+      <div style={{ padding:"16px 12px 8px" }}>
+        <h2 style={{ fontFamily:font.title, fontSize:"1.5rem", letterSpacing:"2px" }}>❌ FALTAM</h2>
+        <p style={{ color:muted, fontSize:".8rem", fontWeight:700, marginTop:2 }}>{total} figurinha{total!==1?"s":""} faltando para completar</p>
+      </div>
+      {sections.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"50px 20px", color:muted }}>
+          <div style={{ fontSize:46, marginBottom:10 }}>🏆</div>
+          <p style={{ fontSize:".88rem", fontWeight:700, lineHeight:1.6 }}>Álbum completo!<br/>Parabéns, você tem todas as figurinhas!</p>
+        </div>
+      ) : sections.map(({grp,teamItems})=>(
+        <div key={grp.id}>
+          <div style={{ padding:"8px 12px", fontFamily:font.title, fontSize:".85rem", letterSpacing:1, color:gold, background:card, borderTop:`1px solid ${bdr}`, borderBottom:`1px solid ${bdr}`, margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          {teamItems.map(({team,items})=>(
+            <div key={team.id}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px 3px", fontFamily:font.body, fontSize:".75rem", fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:muted,fontWeight:700}}>({items.length} faltando)</span></div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:5, padding:"0 12px 6px" }}>
+                {items.map(s=>(
+                  <div key={s.id} style={{ background:"rgba(255,23,68,0.08)", border:"1.5px solid rgba(255,23,68,.25)", borderRadius:7, padding:"4px 9px", fontSize:".7rem", fontWeight:800, color:"#ff6b6b" }}>
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ height:14 }} />
+    </div>
+  );
+}
+
+// ─── HAMBURGER MENU ───────────────────────────────────────────────────────────
+function HamburgerMenu({ onSelect }) {
+  const [open, setOpen] = useState(false);
+
+  const items = [
+    { id:"reports", ico:"📊", label:"Relatórios" },
+    { id:"backup",  ico:"💾", label:"Backup" },
+  ];
+
+  return (
+    <div style={{ position:"relative" }}>
+      {/* overlay */}
+      {open && (
+        <div onClick={()=>setOpen(false)} style={{ position:"fixed", inset:0, zIndex:150 }} />
+      )}
+
+      {/* hamburger button */}
+      <button onClick={()=>setOpen(o=>!o)} style={{
+        background:"none", border:`1px solid ${bdr}`, borderRadius:8,
+        color: open ? gold : muted, padding:"6px 9px", cursor:"pointer",
+        display:"flex", flexDirection:"column", gap:4,
+        WebkitTapHighlightColor:"transparent", zIndex:160, position:"relative",
+      }}>
+        {open ? (
+          <span style={{ fontSize:16, lineHeight:1, color:gold }}>✕</span>
+        ) : (
+          <>
+            <span style={{ display:"block", width:18, height:2, background:muted, borderRadius:2 }} />
+            <span style={{ display:"block", width:18, height:2, background:muted, borderRadius:2 }} />
+            <span style={{ display:"block", width:18, height:2, background:muted, borderRadius:2 }} />
+          </>
+        )}
+      </button>
+
+      {/* dropdown */}
+      {open && (
+        <div style={{
+          position:"absolute", top:"calc(100% + 8px)", right:0,
+          background:"rgba(14,14,28,0.98)", border:`1px solid ${bdr}`,
+          borderRadius:12, overflow:"hidden", minWidth:160, zIndex:200,
+          boxShadow:"0 8px 32px rgba(0,0,0,0.5)",
+          animation:"slideDown .15s ease",
+        }}>
+          {items.map((item, i) => (
+            <button key={item.id} onClick={()=>{ onSelect(item.id); setOpen(false); }} style={{
+              display:"flex", alignItems:"center", gap:10,
+              width:"100%", padding:"13px 16px",
+              background:"transparent", border:"none",
+              borderBottom: i < items.length-1 ? `1px solid ${bdr}` : "none",
+              color:"#efefef", fontFamily:font.body, fontSize:".85rem", fontWeight:800,
+              cursor:"pointer", textAlign:"left",
+              WebkitTapHighlightColor:"transparent",
+            }}>
+              <span style={{ fontSize:18 }}>{item.ico}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [col,    setCol]   = useState(loadCol);
   const [page,   setPage]  = useState("album");
@@ -543,29 +701,39 @@ export default function App() {
 
         {/* header */}
         <div style={{ flexShrink:0, background:"rgba(7,7,14,0.97)", backdropFilter:"blur(20px)", borderBottom:`1px solid ${bdr}`, padding:"12px 14px 10px", display:"flex", alignItems:"center", gap:10, zIndex:100 }}>
-          <span style={{ fontSize:24, filter:"drop-shadow(0 0 14px rgba(255,215,0,.65))" }}>🏆</span>
+          {/* trophy / back button */}
+          {page !== "album" ? (
+            <button onClick={()=>setPage("album")} style={{ background:"none", border:`1px solid ${bdr}`, borderRadius:8, color:gold, fontSize:".75rem", fontWeight:800, fontFamily:font.body, padding:"5px 10px", cursor:"pointer", WebkitTapHighlightColor:"transparent", display:"flex", alignItems:"center", gap:5 }}>
+              ← Álbum
+            </button>
+          ) : (
+            <span style={{ fontSize:24, filter:"drop-shadow(0 0 14px rgba(255,215,0,.65))" }}>🏆</span>
+          )}
+
           <div style={{ flex:1 }}>
-            <div style={{ fontFamily:font.title, fontSize:"1.3rem", letterSpacing:"2.5px", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>COPA 2026</div>
-            <div style={{ fontSize:".6rem", color:muted, fontWeight:800, letterSpacing:".5px", textTransform:"uppercase", marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>
+            <div style={{ fontFamily:font.title, fontSize:"1.3rem", letterSpacing:"2.5px", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>
+              {page==="album"   ? "COPA 2026"        :
+               page==="doubles" ? "REPETIDAS"        :
+               page==="have"    ? "TENHO"            :
+               page==="miss"    ? "FALTAM"           :
+               page==="reports" ? "RELATÓRIOS"       : "BACKUP"}
+            </div>
+            {page==="album" && (
+              <div style={{ fontSize:".6rem", color:muted, fontWeight:800, letterSpacing:".5px", textTransform:"uppercase", marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>
+            )}
           </div>
+
+          <HamburgerMenu onSelect={setPage} />
         </div>
 
         {/* scroll area */}
         <div style={{ flex:1, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
-          {page==="album"   && <AlbumPage   col={col} onUpdate={update} />}
+          {page==="album"   && <AlbumPage   col={col} onUpdate={update} onNavigate={setPage} />}
           {page==="doubles" && <DoublesPage col={col} />}
+          {page==="have"    && <HavePage    col={col} />}
+          {page==="miss"    && <MissPage    col={col} />}
           {page==="reports" && <ReportsPage col={col} onToast={showToast} />}
           {page==="backup"  && <BackupPage  col={col} onImport={importCol} onToast={showToast} />}
-        </div>
-
-        {/* bottom nav */}
-        <div style={{ flexShrink:0, display:"flex", background:"rgba(7,7,14,0.98)", borderTop:`1px solid ${bdr}` }}>
-          {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setPage(t.id)} style={{ flex:1, padding:"10px 4px", border:"none", background:"transparent", color:page===t.id?gold:muted, fontFamily:font.body, fontSize:".58rem", fontWeight:800, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:2, textTransform:"uppercase", letterSpacing:".4px", WebkitTapHighlightColor:"transparent" }}>
-              <span style={{ fontSize:19 }}>{t.ico}</span>
-              {t.id==="doubles"&&dblCnt>0 ? `Rep.(${dblCnt})` : t.label}
-            </button>
-          ))}
         </div>
 
         {toast && <Toast msg={toast.msg} type={toast.type} />}
@@ -573,3 +741,4 @@ export default function App() {
     </>
   );
 }
+

@@ -189,8 +189,8 @@ function StickerPanel({ team, col, onUpdate, onClose }) {
           ✕ Fechar
         </button>
       </div>
-      {/* 4 stickers per row */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:5, padding:8 }}>
+      {/* 3 stickers per row */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:5, padding:8 }}>
         {team.stickers.map(s => (
           <StickerCell
             key={s.id} s={s} qty={col[s.id]||0}
@@ -232,14 +232,13 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate }) {
   const grpTotal = grp.teams.reduce((a,t)=>a+t.stickers.length,0);
 
   // Build grid children: team cards + panel injected after its row end
-  const COLS = 3;
+  const COLS = 2;
   const children = [];
   grp.teams.forEach((team, idx) => {
     children.push(
       <TeamCard key={team.id} team={team} col={col} isOpen={openTeamId===team.id} onToggle={()=>onToggle(team.id)} />
     );
     if (team.id === openTeamId) {
-      // fill remaining cells in row with invisible placeholders so panel starts on next row
       const remaining = COLS - 1 - (idx % COLS);
       for (let r = 0; r < remaining; r++) {
         children.push(<div key={`ph-${team.id}-${r}`} />);
@@ -257,7 +256,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate }) {
         <div style={{ flex:1, height:1, background:bdr }} />
         <span style={{ fontFamily:font.body, fontSize:".62rem", color:muted, fontWeight:800 }}>{grpOwned}/{grpTotal}</span>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:7, padding:"0 12px 6px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:7, padding:"0 12px 6px" }}>
         {children}
       </div>
     </div>

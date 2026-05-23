@@ -4,7 +4,7 @@ Projeto 100% desenvolvido com o Claude AI versão gratuita.
 
 Os dados do preenchimento são salvos no localstorage do browser, portanto se limpar os dados e navegação ou usar aba anônima seu dados serão perdidos. 
 
-#Principais features
+# Principais features
 1. Preenchimento de figurinhas conquistadas
 2. Controle de repetidas(basta clicar mais de uma vez em uma figurinha)
 3. Busca por seleção

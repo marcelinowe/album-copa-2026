@@ -470,12 +470,13 @@ function TradePage({ col, onToast }) {
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
       lines.push(`${team.flag} *${team.name}*`);
-      lines.push(items.map(s=>`${s.label}${s.extra>1?` (×${s.extra})`:`}`}`).join(", "));
+      lines.push(items.map(s=>`${s.label}${s.extra>1?" (×"+s.extra+"x)":""}`).join(", "));
       lines.push("");
     });
-    lines.push(`Total: ${items.length} figurinha${items.length!==1?"s":""}`);
+    lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
+    lines.push("_Álbum Copa 2026_");
     const text=encodeURIComponent(lines.join("\n"));
-    window.open(`https://wa.me/?text=${text}`,"_blank");
+    window.open(`https://api.whatsapp.com/send?text=${text}`,"_blank");
   }
 
   return (
@@ -610,11 +611,11 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, onToast }) {
           <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>Por Pacote</div>
         </div>
         <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:gold,lineHeight:1 }}>{packets*5}</div>
+          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:gold,lineHeight:1 }}>{packets*7}</div>
           <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>Figurinhas Recebidas</div>
         </div>
         <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:"#ff80ab",lineHeight:1 }}>{packets>0?Math.round(total/Math.max(Object.values({}).filter(v=>v>0).length,1)*10)/10:0}</div>
+          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:"#ff80ab",lineHeight:1 }}>{packets>0?(PRICE/7).toFixed(2).replace(".",","):"0,00"}</div>
           <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>R$/Figurinha</div>
         </div>
       </div>

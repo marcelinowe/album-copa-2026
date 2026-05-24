@@ -133,7 +133,40 @@ function teamProgress(team, col) {
   return { owned, total:team.stickers.length, pct:Math.round((owned/team.stickers.length)*100), full:owned===team.stickers.length };
 }
 
-// ─── TOAST ───────────────────────────────────────────────────────────────────
+// ─── CLEARABLE INPUT ─────────────────────────────────────────────────────────
+function ClearableInput({ value, onChange, placeholder, autoFocus, style }) {
+  return (
+    <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
+      <input
+        value={value}
+        onChange={e=>onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off" autoCorrect="off" spellCheck={false}
+        autoFocus={autoFocus}
+        style={{ width:"100%", paddingRight: value ? "36px" : "14px", ...style }}
+      />
+      {value && (
+        <button
+          onClick={()=>onChange("")}
+          style={{
+            position:"absolute", right:10,
+            width:20, height:20,
+            border:"none", borderRadius:"50%",
+            background:"rgba(255,255,255,0.12)",
+            color:"#aaa", fontSize:12, fontWeight:900,
+            cursor:"pointer", display:"flex",
+            alignItems:"center", justifyContent:"center",
+            lineHeight:1, padding:0,
+            WebkitTapHighlightColor:"transparent",
+            flexShrink:0,
+          }}
+        >✕</button>
+      )}
+    </div>
+  );
+}
+
+
 function Toast({ msg, type }) {
   if (!msg) return null;
   const ok = type !== "err";
@@ -333,8 +366,11 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
         </div>
       </div>
       <div style={{ padding:"2px 12px 8px" }}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Buscar (ex: BRA 7, Brasil, Grupo C...)" autoComplete="off" autoCorrect="off" spellCheck={false}
-          style={{ width:"100%",padding:"10px 14px",background:card,border:`1.5px solid ${bdr}`,borderRadius:10,color:"#efefef",fontFamily:font.body,fontSize:".9rem",outline:"none",WebkitAppearance:"none" }}
+        <ClearableInput
+          value={search}
+          onChange={setSearch}
+          placeholder="🔍 Buscar (ex: BRA 7, Brasil, Grupo C...)"
+          style={{ padding:"10px 14px", background:card, border:`1.5px solid ${bdr}`, borderRadius:10, color:"#efefef", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {filtered.map(grp=>(
@@ -545,8 +581,12 @@ function SearchPage({ col }) {
         <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Digite o código ou nome para verificar status</p>
       </div>
       <div style={{ padding:"0 12px 12px" }}>
-        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ex: BRA 7, ARG 15, Brasil..." autoComplete="off" autoCorrect="off" autoFocus
-          style={{ width:"100%",padding:"12px 16px",background:card,border:`1.5px solid rgba(255,215,0,0.3)`,borderRadius:12,color:"#efefef",fontFamily:font.body,fontSize:"1rem",outline:"none",WebkitAppearance:"none" }}
+        <ClearableInput
+          value={q}
+          onChange={setQ}
+          placeholder="Ex: BRA 7, ARG 15, Brasil..."
+          autoFocus
+          style={{ padding:"12px 16px", background:card, border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:"#efefef", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {q.trim().length>0&&q.trim().length<2&&(

@@ -301,7 +301,7 @@ function StickerPanel({ team, col, onUpdate, onClose, locked}) {
         <span style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1 }}>{team.name}</span>
         <span style={{ fontFamily:font.body,fontSize:".62rem",color:"var(--muted)",fontWeight:800 }}>{owned}/{total}</span>
         {locked && <span style={{ fontSize:".65rem",fontWeight:800,color:"#ff6b6b",background:"rgba(255,68,68,0.12)",border:"1px solid rgba(255,68,68,.3)",borderRadius:6,padding:"2px 7px" }}>🔒 Bloqueado</span>}
-        <button onClick={onClose} style={{ marginLeft:"auto",background:"none",border:`1px solid ${var(--bdr)}`,borderRadius:6,color:"var(--muted)",fontSize:".68rem",fontWeight:800,fontFamily:font.body,cursor:"pointer",padding:"3px 9px",WebkitTapHighlightColor:"transparent" }}>✕ Fechar</button>
+        <button onClick={onClose} style={{ marginLeft:"auto",background:"none",border:"1px solid var(--bdr)",borderRadius:6,color:"var(--muted)",fontSize:".68rem",fontWeight:800,fontFamily:font.body,cursor:"pointer",padding:"3px 9px",WebkitTapHighlightColor:"transparent" }}>✕ Fechar</button>
       </div>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,padding:8 }}>
         {team.stickers.map(s=>(
@@ -424,7 +424,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked}) {
           onChange={setSearch}
           placeholder="🔍 Buscar (ex: BRA 7, Brasil, Grupo C...)"
           
-          style={{ padding:"10px 14px", background:"var(--card)", border:`1.5px solid ${var(--bdr)}`, borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
+          style={{ padding:"10px 14px", background:"var(--card)", border:"1.5px solid var(--bdr)", borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {filtered.map(grp=>(
@@ -453,7 +453,7 @@ function HavePage({ col}) {
       {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>📦</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma figurinha ainda!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:`1px solid ${var(--bdr)}`,borderBottom:`1px solid ${var(--bdr)}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
               <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:"var(--muted)",fontWeight:700}}>({items.length}/{team.stickers.length})</span></div>
@@ -487,7 +487,7 @@ function MissPage({ col}) {
       {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🏆</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Álbum completo! Parabéns!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:`1px solid ${var(--bdr)}`,borderBottom:`1px solid ${var(--bdr)}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
               <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:"var(--muted)",fontWeight:700}}>({items.length} faltando)</span></div>
@@ -521,7 +521,7 @@ function DoublesPage({ col}) {
       {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🎉</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida ainda!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:`1px solid ${var(--bdr)}`,borderBottom:`1px solid ${var(--bdr)}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
               <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong></div>
@@ -581,7 +581,7 @@ function TradePage({ col, onToast}) {
       ):(
         <>
           <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:`1px solid ${var(--bdr)}`,borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
               {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
             </button>
             <button onClick={shareWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
@@ -651,7 +651,7 @@ function SearchPage({ col}) {
         <div style={{ padding:"0 12px" }}>
           <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:800,marginBottom:8 }}>{result.length} resultado{result.length!==1?"s":""}</div>
           {result.map(({s,team,grp,qty})=>(
-            <div key={s.id} style={{ background:"var(--card)",border:`1px solid ${var(--bdr)}`,borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10 }}>
+            <div key={s.id} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10 }}>
               <span style={{ fontSize:24 }}>{team.flag}</span>
               <div style={{ flex:1 }}>
                 <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px" }}>{s.label}</div>
@@ -700,7 +700,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
     onToast("✅ Figurinha avulsa adicionada","ok");
   }
 
-  const inputSt = { flex:1, padding:"10px 12px", background:"var(--input-bg)", border:`1.5px solid ${var(--bdr)}`, borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".88rem", outline:"none", WebkitAppearance:"none", minWidth:0 };
+  const inputSt = { flex:1, padding:"10px 12px", background:"var(--input-bg)", border:"1.5px solid var(--bdr)", borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".88rem", outline:"none", WebkitAppearance:"none", minWidth:0 };
 
   return (
     <div>
@@ -726,7 +726,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
       </div>
 
       {/* ── PACOTES SECTION ── */}
-      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:`1px solid ${var(--bdr)}`, borderRadius:16, padding:"16px 16px 12px" }}>
+      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"16px 16px 12px" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
           <div style={{ fontFamily:font.title, fontSize:"1rem", letterSpacing:"1.5px" }}>📦 PACOTES (R${PRICE},00 cada)</div>
           <div style={{ fontFamily:font.title, fontSize:".85rem", color:gold }}>R${pktTotal.toFixed(2).replace(".",",")} · {pktFigs} fig.</div>
@@ -737,7 +737,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
           <div style={{ fontFamily:font.title, fontSize:"4rem", lineHeight:1, background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{packets}</div>
           <div style={{ fontSize:".65rem", color:"var(--muted)", fontWeight:800, textTransform:"uppercase", marginTop:4, marginBottom:14 }}>Pacotes abertos</div>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:16 }}>
-            <button onClick={onRemove} style={{ width:48, height:48, borderRadius:"50%", border:`2px solid ${var(--bdr)}`, background:"rgba(255,255,255,0.04)", color:"var(--text)", fontSize:26, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent" }}>−</button>
+            <button onClick={onRemove} style={{ width:48, height:48, borderRadius:"50%", border:"2px solid var(--bdr)", background:"rgba(255,255,255,0.04)", color:"var(--text)", fontSize:26, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent" }}>−</button>
             <button onClick={onAdd} style={{ width:58, height:58, borderRadius:"50%", border:"none", background:`linear-gradient(135deg,${gold},${gold2})`, color:"#000", fontSize:28, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent", boxShadow:`0 0 16px rgba(255,215,0,0.3)` }}>+</button>
           </div>
         </div>
@@ -752,7 +752,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
             <>
               <p style={{ color:"var(--muted)", fontSize:".72rem", fontWeight:700, marginBottom:7, textAlign:"center" }}>Zerar contador de pacotes?</p>
               <div style={{ display:"flex", gap:7 }}>
-                <button onClick={()=>setConfirm(false)} style={{ flex:1, padding:9, border:`1px solid ${var(--bdr)}`, borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
+                <button onClick={()=>setConfirm(false)} style={{ flex:1, padding:9, border:"1px solid var(--bdr)", borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
                 <button onClick={()=>{onReset();setConfirm(false);onToast("Pacotes zerados","ok");}} style={{ flex:1, padding:9, border:"none", borderRadius:9, background:"rgba(255,68,68,0.8)", color:"#fff", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Zerar</button>
               </div>
             </>
@@ -761,7 +761,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
       </div>
 
       {/* ── AVULSAS SECTION ── */}
-      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:`1px solid ${var(--bdr)}`, borderRadius:16, padding:"16px" }}>
+      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"16px" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
           <div style={{ fontFamily:font.title, fontSize:"1rem", letterSpacing:"1.5px" }}>🃏 FIGURINHAS AVULSAS</div>
           <div style={{ fontFamily:font.title, fontSize:".85rem", color:green }}>R${avuTotal.toFixed(2).replace(".",",")} · {avuFigs} fig.</div>
@@ -814,7 +814,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
                 const q = item.qty || 1;
                 const total = item.price * q;
                 return (
-                  <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, background:"var(--card)"2, border:`1px solid ${var(--bdr)}`, borderRadius:9, padding:"8px 10px" }}>
+                  <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, background:"var(--card2)", border:"1px solid var(--bdr)", borderRadius:9, padding:"8px 10px" }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:".75rem", fontWeight:800, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.label}</div>
                       <div style={{ fontSize:".62rem", color:"var(--muted)", fontWeight:700, marginTop:1 }}>
@@ -837,7 +837,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onR
               <>
                 <p style={{ color:"var(--muted)", fontSize:".72rem", fontWeight:700, marginBottom:7, textAlign:"center" }}>Remover todas as figurinhas avulsas?</p>
                 <div style={{ display:"flex", gap:7 }}>
-                  <button onClick={()=>setConfAvu(false)} style={{ flex:1, padding:9, border:`1px solid ${var(--bdr)}`, borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
+                  <button onClick={()=>setConfAvu(false)} style={{ flex:1, padding:9, border:"1px solid var(--bdr)", borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
                   <button onClick={()=>{onResetAvu();setConfAvu(false);onToast("Avulsas removidas","ok");}} style={{ flex:1, padding:9, border:"none", borderRadius:9, background:"rgba(255,68,68,0.8)", color:"#fff", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Limpar</button>
                 </div>
               </>
@@ -986,7 +986,7 @@ function WorldMapPage({ col}) {
       </div>
 
       {/* map */}
-      <div style={{ margin:"0 12px 12px",background:"#0d1117",borderRadius:16,overflow:"hidden",border:`1px solid ${var(--bdr)}`,position:"relative" }}>
+      <div style={{ margin:"0 12px 12px",background:"#0d1117",borderRadius:16,overflow:"hidden",border:"1px solid var(--bdr)",position:"relative" }}>
         <svg viewBox="0 0 88 72" style={{ width:"100%",display:"block" }}>
           {/* ocean background */}
           <rect width="88" height="72" fill="#0d1117" />
@@ -1067,7 +1067,7 @@ function ReportsPage({ col, onToast}) {
       <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte listas em .txt fáceis de compartilhar.</p>
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
         {cards.map(c=>(
-          <div key={c.type} style={{ background:"var(--card)",border:`1px solid ${var(--bdr)}`,borderRadius:13,padding:"14px 12px" }}>
+          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"14px 12px" }}>
             <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:4 }}>{c.label}</h3>
             <p style={{ color:"var(--muted)",fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
             <button onClick={()=>{dl(build(c.type),`copa2026-${c.type}.txt`);onToast("✅ Relatório exportado!","ok");}} style={{ width:"100%",padding:12,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>⬇ EXPORTAR</button>
@@ -1083,7 +1083,7 @@ function ReportsPage({ col, onToast}) {
 function BackupPage({ col, onImport, onToast}) {
   function exportBackup(){ const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),collection:col},null,2)],{type:"application/json"})),download:"album-copa-backup.json"});document.body.appendChild(a);a.click();document.body.removeChild(a);onToast("✅ Backup exportado!","ok"); }
   function importBackup(e){ const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const parsed=JSON.parse(ev.target.result);const data=parsed.collection||parsed;if(typeof data!=="object"||Array.isArray(data))throw new Error();onImport(data);onToast("✅ Backup restaurado!","ok");}catch{onToast("❌ Arquivo inválido","err");}e.target.value="";};reader.readAsText(file); }
-  const cs={background:"var(--card)",border:`1px solid ${var(--bdr)}`,borderRadius:13,padding:16,marginBottom:10};
+  const cs={background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:16,marginBottom:10};
   const bs=(g1,g2,dk)=>({width:"100%",padding:13,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:`linear-gradient(135deg,${g1},${g2})`,color:dk?"#000":"#fff",WebkitTapHighlightColor:"transparent"});
   return (
     <div style={{ padding:"16px 12px" }}>
@@ -1118,7 +1118,7 @@ function SobrePage({}) {
     <div style={{ padding:"16px 12px" }}>
 
       {/* hero */}
-      <div style={{ textAlign:"center", padding:"24px 0 20px", borderBottom:`1px solid ${var(--bdr)}`, marginBottom:20 }}>
+      <div style={{ textAlign:"center", padding:"24px 0 20px", borderBottom:"1px solid var(--bdr)", marginBottom:20 }}>
         <div style={{ fontSize:52, marginBottom:8, filter:"drop-shadow(0 0 20px rgba(255,215,0,0.5))" }}>🏆</div>
         <div style={{ fontFamily:font.title, fontSize:"1.8rem", letterSpacing:"3px", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
           ÁLBUM COPA 2026
@@ -1131,7 +1131,7 @@ function SobrePage({}) {
       </div>
 
       {/* sobre */}
-      <div style={{ background:"var(--card)", border:`1px solid ${var(--bdr)}`, borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
+      <div style={{ background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
         <h3 style={{ fontFamily:font.title, fontSize:"1.1rem", letterSpacing:"1.5px", marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
           <span>📖</span> SOBRE O APP
         </h3>
@@ -1147,7 +1147,7 @@ function SobrePage({}) {
       </div>
 
       {/* features */}
-      <div style={{ background:"var(--card)", border:`1px solid ${var(--bdr)}`, borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
+      <div style={{ background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
         <h3 style={{ fontFamily:font.title, fontSize:"1.1rem", letterSpacing:"1.5px", marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
           <span>⚡</span> RECURSOS
         </h3>
@@ -1208,13 +1208,13 @@ function HamburgerMenu({ onSelect}) {
   return (
     <div style={{ position:"relative" }}>
       {open&&<div onClick={()=>setOpen(false)} style={{ position:"fixed",inset:0,zIndex:150 }} />}
-      <button onClick={()=>setOpen(o=>!o)} style={{ background:"none",border:`1px solid ${var(--bdr)}`,borderRadius:8,color:open?gold:muted,padding:"6px 9px",cursor:"pointer",display:"flex",flexDirection:"column",gap:4,WebkitTapHighlightColor:"transparent",zIndex:160,position:"relative" }}>
+      <button onClick={()=>setOpen(o=>!o)} style={{ background:"none",border:"1px solid var(--bdr)",borderRadius:8,color:open?gold:muted,padding:"6px 9px",cursor:"pointer",display:"flex",flexDirection:"column",gap:4,WebkitTapHighlightColor:"transparent",zIndex:160,position:"relative" }}>
         {open?<span style={{ fontSize:16,lineHeight:1,color:gold }}>✕</span>:<>{[0,1,2].map(i=><span key={i} style={{ display:"block",width:18,height:2,background:muted,borderRadius:2 }} />)}</>}
       </button>
       {open&&(
-        <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"rgba(14,14,28,0.98)",border:`1px solid ${var(--bdr)}`,borderRadius:12,overflow:"hidden",minWidth:180,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",animation:"slideDown .15s ease" }}>
+        <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"rgba(14,14,28,0.98)",border:"1px solid var(--bdr)",borderRadius:12,overflow:"hidden",minWidth:180,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",animation:"slideDown .15s ease" }}>
           {items.map((item,i)=>(
-            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?`1px solid ${var(--bdr)}`:"none",color:"var(--text)",fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
+            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?"1px solid var(--bdr)":"none",color:"var(--text)",fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
               <span style={{ fontSize:18 }}>{item.ico}</span>{item.label}
             </button>
           ))}

@@ -109,49 +109,23 @@ const ALL_TEAMS = GROUPS.flatMap(g => g.teams);
 const TOTAL     = ALL_TEAMS.reduce((a,t) => a + t.stickers.length, 0);
 const KEY       = "copa2026_col";
 const PKT_KEY   = "copa2026_pkt";
-const THEME_KEY = "copa2026_theme";
 const PRICE     = 7;
 
 function loadCol() { try { return JSON.parse(localStorage.getItem(KEY)||"{}"); } catch { return {}; } }
 function persistCol(c) { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch {} }
 function loadPkt() { try { return parseInt(localStorage.getItem(PKT_KEY)||"0"); } catch { return 0; } }
 function persistPkt(n) { try { localStorage.setItem(PKT_KEY, String(n)); } catch {} }
-function loadTheme() { return localStorage.getItem(THEME_KEY)||"dark"; }
-function persistTheme(t) { localStorage.setItem(THEME_KEY, t); }
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
 const gold  = "#FFD700";
 const gold2 = "#FFA500";
+const dark  = "#07070e";
+const card  = "#14142a";
+const bdr   = "rgba(255,215,0,0.13)";
+const muted = "#666";
 const green = "#00c853";
 const red   = "#ff4444";
 const font  = { title:"'Bebas Neue', sans-serif", body:"'Nunito', sans-serif" };
-
-const THEMES = {
-  dark: {
-    bg:    "#07070e",
-    card:  "#14142a",
-    card2: "#1a1a35",
-    bdr:   bdr,
-    text:  "#efefef",
-    muted: "#666",
-    hdr:   "rgba(7,7,14,0.97)",
-    bgImg: "radial-gradient(ellipse at 10% 0%,rgba(255,215,0,0.07) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.05) 0%,transparent 55%)",
-    placeholder: "#555",
-    inputBg: "#14142a",
-  },
-  light: {
-    bg:    "#f0f2f5",
-    card:  "#ffffff",
-    card2: "#f8f9fc",
-    bdr:   "rgba(180,140,0,0.2)",
-    text:  "#111111",
-    muted: "#888",
-    hdr:   "rgba(240,242,245,0.97)",
-    bgImg: "radial-gradient(ellipse at 10% 0%,rgba(255,200,0,0.08) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.06) 0%,transparent 55%)",
-    placeholder: "#aaa",
-    inputBg: "#f0f2f5",
-  },
-};
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function teamProgress(team, col) {
@@ -160,8 +134,7 @@ function teamProgress(team, col) {
 }
 
 // ─── CLEARABLE INPUT ─────────────────────────────────────────────────────────
-function ClearableInput({ value, onChange, placeholder, autoFocus, style, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function ClearableInput({ value, onChange, placeholder, autoFocus, style }) {
   return (
     <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
       <input
@@ -224,15 +197,14 @@ function Confetti({ onDone }) {
 }
 
 // ─── GROUP COMPLETE BANNER ────────────────────────────────────────────────────
-function GroupBanner({ grp, onDone, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function GroupBanner({ grp, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 2500); return ()=>clearTimeout(t); }, []);
   return (
     <div style={{ position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:998,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)" }}>
       <div style={{ background:card,border:`2px solid ${gold}`,borderRadius:20,padding:"32px 40px",textAlign:"center",animation:"slideDown .3s ease",boxShadow:`0 0 40px rgba(255,215,0,0.3)` }}>
         <div style={{ fontSize:52, marginBottom:8 }}>🏆</div>
         <div style={{ fontFamily:font.title,fontSize:"1.6rem",letterSpacing:"2px",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>GRUPO COMPLETO!</div>
-        <div style={{ color:text,fontWeight:800,marginTop:6,fontSize:".9rem" }}>{grp.name}</div>
+        <div style={{ color:"#efefef",fontWeight:800,marginTop:6,fontSize:".9rem" }}>{grp.name}</div>
         <div style={{ color:muted,fontSize:".75rem",marginTop:4 }}>Parabéns! 🎉</div>
       </div>
     </div>
@@ -240,24 +212,22 @@ function GroupBanner({ grp, onDone, T}) {
 }
 
 // ─── STICKER CELL ─────────────────────────────────────────────────────────────
-function StickerCell({ s, qty, onInc, onDec, locked, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
-  const st    = qty===0?"empty":qty===1?"have":"dbl";
-  const ico   = qty===0?"✦":qty===1?"✅":"⭐";
-  const bc    = st==="have"?green:st==="dbl"?gold:bdr;
-  const stkBg = st==="have"?"linear-gradient(135deg,rgba(0,200,83,.13),rgba(0,200,83,.03))":st==="dbl"?"linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,165,0,.05))":"rgba(255,255,255,0.02)";
-  const lc    = st==="have"?"#69ff94":st==="dbl"?gold:muted;
-  const qb    = { width:17,height:17,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:text,borderRadius:4,fontSize:13,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
+function StickerCell({ s, qty, onInc, onDec, locked }) {
+  const st  = qty===0?"empty":qty===1?"have":"dbl";
+  const ico = qty===0?"✦":qty===1?"✅":"⭐";
+  const bc  = st==="have"?green:st==="dbl"?gold:bdr;
+  const bg  = st==="have"?"linear-gradient(135deg,rgba(0,200,83,.13),rgba(0,200,83,.03))":st==="dbl"?"linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,165,0,.05))":"rgba(255,255,255,0.02)";
+  const lc  = st==="have"?"#69ff94":st==="dbl"?gold:muted;
   return (
-    <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:stkBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
+    <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
       {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:15,height:15,background:gold,color:"#000",borderRadius:"50%",fontSize:".5rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}
       <div style={{ fontSize:13,marginBottom:1 }}>{ico}</div>
       <div style={{ fontSize:".5rem",fontWeight:800,color:lc,textTransform:"uppercase",letterSpacing:".2px",textAlign:"center",lineHeight:1.2 }}>{s.label}</div>
       {qty>0&&!locked&&(
         <div style={{ display:"flex",alignItems:"center",gap:1,marginTop:2 }} onClick={e=>e.stopPropagation()}>
-          <button onClick={onDec} style={qb}>−</button>
+          <button onClick={onDec} style={qbSt}>−</button>
           <span style={{ fontSize:".58rem",fontWeight:800,minWidth:11,textAlign:"center" }}>{qty}</span>
-          <button onClick={onInc} style={qb}>+</button>
+          <button onClick={onInc} style={qbSt}>+</button>
         </div>
       )}
       {qty>0&&locked&&(
@@ -266,10 +236,10 @@ function StickerCell({ s, qty, onInc, onDec, locked, T}) {
     </div>
   );
 }
+const qbSt={ width:17,height:17,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"#efefef",borderRadius:4,fontSize:13,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
 
 // ─── STICKER PANEL ────────────────────────────────────────────────────────────
-function StickerPanel({ team, col, onUpdate, onClose, locked, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function StickerPanel({ team, col, onUpdate, onClose, locked }) {
   const { owned, total } = teamProgress(team, col);
   return (
     <div style={{ gridColumn:"1/-1",background:"rgba(255,215,0,0.03)",border:`1.5px solid ${locked?"rgba(255,68,68,.3)":"rgba(255,215,0,.2)"}`,borderRadius:13,overflow:"hidden",animation:"slideDown .18s ease" }}>
@@ -293,8 +263,7 @@ function StickerPanel({ team, col, onUpdate, onClose, locked, T}) {
 }
 
 // ─── TEAM CARD ────────────────────────────────────────────────────────────────
-function TeamCard({ team, col, isOpen, onToggle, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function TeamCard({ team, col, isOpen, onToggle }) {
   const { owned, total, pct, full } = teamProgress(team, col);
   const bc = isOpen?"rgba(255,215,0,.6)":full?"rgba(0,200,83,.45)":bdr;
   return (
@@ -313,8 +282,7 @@ function TeamCard({ team, col, isOpen, onToggle, T}) {
 }
 
 // ─── GROUP SECTION ────────────────────────────────────────────────────────────
-function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked }) {
   const grpOwned = grp.teams.reduce((a,t)=>a+teamProgress(t,col).owned,0);
   const grpTotal = grp.teams.reduce((a,t)=>a+t.stickers.length,0);
   const COLS=2;
@@ -342,8 +310,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked, T}) {
 }
 
 // ─── ALBUM PAGE ───────────────────────────────────────────────────────────────
-function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
   const [search,setSearch]         = useState("");
   const [openTeamId,setOpenTeamId] = useState(null);
   const prevCompletedRef           = useRef(new Set());
@@ -403,8 +370,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked, T}) {
           value={search}
           onChange={setSearch}
           placeholder="🔍 Buscar (ex: BRA 7, Brasil, Grupo C...)"
-          T={T}
-          style={{ padding:"10px 14px", background:card, border:`1.5px solid ${bdr}`, borderRadius:10, color:text, fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
+          style={{ padding:"10px 14px", background:card, border:`1.5px solid ${bdr}`, borderRadius:10, color:"#efefef", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {filtered.map(grp=>(
@@ -416,8 +382,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked, T}) {
 }
 
 // ─── HAVE PAGE ────────────────────────────────────────────────────────────────
-function HavePage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function HavePage({ col }) {
   const sections=[];
   for(const grp of GROUPS){
     const ti=[];
@@ -451,8 +416,7 @@ function HavePage({ col, T}) {
 }
 
 // ─── MISS PAGE ────────────────────────────────────────────────────────────────
-function MissPage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function MissPage({ col }) {
   const sections=[];
   for(const grp of GROUPS){
     const ti=[];
@@ -486,8 +450,7 @@ function MissPage({ col, T}) {
 }
 
 // ─── DOUBLES PAGE ─────────────────────────────────────────────────────────────
-function DoublesPage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function DoublesPage({ col }) {
   let totalExtra=0;
   const sections=[];
   for(const grp of GROUPS){
@@ -521,8 +484,7 @@ function DoublesPage({ col, T}) {
 }
 
 // ─── TRADE PAGE ───────────────────────────────────────────────────────────────
-function TradePage({ col, onToast, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function TradePage({ col, onToast }) {
   const [selected, setSelected] = useState(new Set());
 
   const allDoubles = [];
@@ -549,8 +511,8 @@ function TradePage({ col, onToast, T}) {
     });
     lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
     lines.push("_Álbum Copa 2026_");
-    const encoded=encodeURIComponent(lines.join("\n"));
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`,"_blank");
+    const text=encodeURIComponent(lines.join("\n"));
+    window.open(`https://api.whatsapp.com/send?text=${text}`,"_blank");
   }
 
   return (
@@ -565,7 +527,7 @@ function TradePage({ col, onToast, T}) {
       ):(
         <>
           <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:`1px solid ${bdr}`,borderRadius:10,background:card,color:text,fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:`1px solid ${bdr}`,borderRadius:10,background:card,color:"#efefef",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
               {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
             </button>
             <button onClick={shareWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
@@ -580,7 +542,7 @@ function TradePage({ col, onToast, T}) {
               const sel=selected.has(s.id);
               return (
                 <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":text,WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
+                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"#efefef",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
                   {s.team.flag} {s.label}
                   <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>×{s.extra}</span>
                 </div>
@@ -595,8 +557,7 @@ function TradePage({ col, onToast, T}) {
 }
 
 // ─── SEARCH PAGE ──────────────────────────────────────────────────────────────
-function SearchPage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function SearchPage({ col }) {
   const [q,setQ] = useState("");
 
   const result = q.trim().length>=2 ? (() => {
@@ -625,8 +586,7 @@ function SearchPage({ col, T}) {
           onChange={setQ}
           placeholder="Ex: BRA 7, ARG 15, Brasil..."
           autoFocus
-          T={T}
-          style={{ padding:"12px 16px", background:card, border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:text, fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
+          style={{ padding:"12px 16px", background:card, border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:"#efefef", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {q.trim().length>0&&q.trim().length<2&&(
@@ -659,8 +619,7 @@ function SearchPage({ col, T}) {
 }
 
 // ─── PACKETS PAGE ─────────────────────────────────────────────────────────────
-function PacketsPage({ packets, onAdd, onRemove, onReset, onToast, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function PacketsPage({ packets, onAdd, onRemove, onReset, onToast }) {
   const total = packets * PRICE;
   const [confirm,setConfirm] = useState(false);
 
@@ -676,7 +635,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, onToast, T}) {
         <div style={{ fontSize:".7rem",color:muted,fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>Pacotes Abertos</div>
         <div style={{ fontFamily:font.title,fontSize:"5rem",lineHeight:1,background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>{packets}</div>
         <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginTop:16 }}>
-          <button onClick={onRemove} style={{ width:52,height:52,borderRadius:"50%",border:`2px solid ${bdr}`,background:"rgba(255,255,255,0.04)",color:text,fontSize:28,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent" }}>−</button>
+          <button onClick={onRemove} style={{ width:52,height:52,borderRadius:"50%",border:`2px solid ${bdr}`,background:"rgba(255,255,255,0.04)",color:"#efefef",fontSize:28,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent" }}>−</button>
           <button onClick={onAdd} style={{ width:64,height:64,borderRadius:"50%",border:"none",background:`linear-gradient(135deg,${gold},${gold2})`,color:"#000",fontSize:32,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",boxShadow:`0 0 20px rgba(255,215,0,0.3)` }}>+</button>
         </div>
       </div>
@@ -712,7 +671,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, onToast, T}) {
         <div style={{ padding:"0 12px 12px" }}>
           <p style={{ color:muted,fontSize:".75rem",fontWeight:700,marginBottom:8,textAlign:"center" }}>Tem certeza que quer zerar o contador?</p>
           <div style={{ display:"flex",gap:8 }}>
-            <button onClick={()=>setConfirm(false)} style={{ flex:1,padding:12,border:`1px solid ${bdr}`,borderRadius:10,background:card,color:text,fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Cancelar</button>
+            <button onClick={()=>setConfirm(false)} style={{ flex:1,padding:12,border:`1px solid ${bdr}`,borderRadius:10,background:card,color:"#efefef",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Cancelar</button>
             <button onClick={()=>{onReset();setConfirm(false);onToast("Contador zerado","ok");}} style={{ flex:1,padding:12,border:"none",borderRadius:10,background:"rgba(255,68,68,0.8)",color:"#fff",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Zerar</button>
           </div>
         </div>
@@ -723,8 +682,7 @@ function PacketsPage({ packets, onAdd, onRemove, onReset, onToast, T}) {
 }
 
 // ─── PROGRESS PAGE ────────────────────────────────────────────────────────────
-function ProgressPage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function ProgressPage({ col }) {
   const groups = GROUPS.filter(g=>g.id!=="special");
   return (
     <div>
@@ -742,7 +700,7 @@ function ProgressPage({ col, T}) {
             <div key={grp.id} style={{ marginBottom:10 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                 <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:text }}>{grp.name}</span>
+                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:"#efefef" }}>{grp.name}</span>
                   <div style={{ display:"flex",gap:3 }}>
                     {grp.teams.map(t=>{ const {full:tf}=teamProgress(t,col); return <span key={t.id} style={{ fontSize:12 }}>{tf?"✅":t.flag}</span>; })}
                   </div>
@@ -785,8 +743,7 @@ function ProgressPage({ col, T}) {
 }
 
 // ─── WORLD MAP PAGE ───────────────────────────────────────────────────────────
-function WorldMapPage({ col, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function WorldMapPage({ col }) {
   const getTeamColor = (teamId) => {
     if(!teamId) return "#1a1a2e";
     const team = ALL_TEAMS.find(t=>t.id===teamId);
@@ -911,8 +868,7 @@ function WorldMapPage({ col, T}) {
 }
 
 // ─── REPORTS PAGE ─────────────────────────────────────────────────────────────
-function ReportsPage({ col, onToast, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function ReportsPage({ col, onToast }) {
   const vals=Object.values(col);
   const have=vals.filter(v=>v>0).length;
   const dbl=vals.filter(v=>v>1).length;
@@ -954,8 +910,7 @@ function ReportsPage({ col, onToast, T}) {
 }
 
 // ─── BACKUP PAGE ──────────────────────────────────────────────────────────────
-function BackupPage({ col, onImport, onToast, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function BackupPage({ col, onImport, onToast }) {
   function exportBackup(){ const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),collection:col},null,2)],{type:"application/json"})),download:"album-copa-backup.json"});document.body.appendChild(a);a.click();document.body.removeChild(a);onToast("✅ Backup exportado!","ok"); }
   function importBackup(e){ const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const parsed=JSON.parse(ev.target.result);const data=parsed.collection||parsed;if(typeof data!=="object"||Array.isArray(data))throw new Error();onImport(data);onToast("✅ Backup restaurado!","ok");}catch{onToast("❌ Arquivo inválido","err");}e.target.value="";};reader.readAsText(file); }
   const cs={background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:16,marginBottom:10};
@@ -975,8 +930,7 @@ function BackupPage({ col, onImport, onToast, T}) {
 const APP_VERSION = "1.0.0";
 
 // ─── SOBRE PAGE ───────────────────────────────────────────────────────────────
-function SobrePage({ T }) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function SobrePage() {
   const features = [
     "Álbum completo com Grupos A–L, FWC e Coca-Cola",
     "Marcação de figurinhas com controle de repetidas",
@@ -1012,7 +966,7 @@ function SobrePage({ T }) {
           <span>📖</span> SOBRE O APP
         </h3>
         <p style={{ fontSize:".82rem", color:"#ccc", fontWeight:700, lineHeight:1.7, marginBottom:12 }}>
-          Este aplicativo foi desenvolvido <strong style={{color:gold}}>100% pelo Claude</strong> (IA da Anthropic), como um experimento pessoal de <strong style={{color:text}}>Marcel Inowe</strong>.
+          Este aplicativo foi desenvolvido <strong style={{color:gold}}>100% pelo Claude</strong> (IA da Anthropic), como um experimento pessoal de <strong style={{color:"#efefef"}}>Marcel Inowe</strong>.
         </p>
         <p style={{ fontSize:".82rem", color:"#ccc", fontWeight:700, lineHeight:1.7, marginBottom:12 }}>
           O projeto nasceu da necessidade: nenhuma outra aplicação disponível atendia às necessidades de recursos e usabilidade que eu precisava para controlar meu álbum da Copa 2026.
@@ -1069,8 +1023,7 @@ function SobrePage({ T }) {
 }
 
 // ─── HAMBURGER MENU ───────────────────────────────────────────────────────────
-function HamburgerMenu({ onSelect, T}) {
-  const {card,bdr,muted,text,bg,inputBg} = T ?? THEMES.dark;
+function HamburgerMenu({ onSelect }) {
   const [open,setOpen]=useState(false);
   const items=[
     {id:"search",  ico:"🔍", label:"Busca Rápida"},
@@ -1091,7 +1044,7 @@ function HamburgerMenu({ onSelect, T}) {
       {open&&(
         <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"rgba(14,14,28,0.98)",border:`1px solid ${bdr}`,borderRadius:12,overflow:"hidden",minWidth:180,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",animation:"slideDown .15s ease" }}>
           {items.map((item,i)=>(
-            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?`1px solid ${bdr}`:"none",color:text,fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
+            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?`1px solid ${bdr}`:"none",color:"#efefef",fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
               <span style={{ fontSize:18 }}>{item.ico}</span>{item.label}
             </button>
           ))}
@@ -1109,6 +1062,7 @@ const PAGE_TITLES = {
   backup:"BACKUP", sobre:"SOBRE",
 };
 
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [col,     setCol]     = useState(loadCol);
   const [packets, setPackets] = useState(loadPkt);
@@ -1116,16 +1070,7 @@ export default function App() {
   const [toast,   setToast]   = useState(null);
   const [confetti,setConfetti]= useState(false);
   const [banner,  setBanner]  = useState(null);
-  const [locked,  setLocked]  = useState(false);
-  const [theme,   setTheme]   = useState(loadTheme);
   const ttRef = useRef(null);
-  const T = THEMES[theme];
-
-  function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    persistTheme(next);
-  }
 
   function showToast(msg,type="ok"){
     setToast({msg,type});
@@ -1143,6 +1088,8 @@ export default function App() {
   function removePacket(){ const n=Math.max(0,packets-1); setPackets(n); persistPkt(n); }
   function resetPackets(){ setPackets(0); persistPkt(0); }
 
+  const [locked,  setLocked]  = useState(false);
+
   function handleGroupComplete(grp){
     setConfetti(true);
     setBanner(grp);
@@ -1156,28 +1103,18 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:${T.bg};}
+        body{background:#07070e;}
         @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-        input::placeholder{color:${T.placeholder};}
+        input::placeholder{color:#555;}
         ::-webkit-scrollbar{width:0;}
-        :root {
-          --bg:   ${T.bg};
-          --card: ${T.card};
-          --card2:${T.card2};
-          --bdr:  ${T.bdr};
-          --text: ${T.text};
-          --muted:${T.muted};
-          --hdr:  ${T.hdr};
-          --input-bg: ${T.inputBg};
-        }
       `}</style>
 
-      <div style={{ display:"flex",flexDirection:"column",height:"100dvh",background:T.bg,color:T.text,fontFamily:font.body,overflow:"hidden",backgroundImage:T.bgImg,transition:"background .25s,color .25s" }}>
+      <div style={{ display:"flex",flexDirection:"column",height:"100dvh",background:dark,color:"#efefef",fontFamily:font.body,overflow:"hidden",backgroundImage:"radial-gradient(ellipse at 10% 0%,rgba(255,215,0,0.07) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.05) 0%,transparent 55%)" }}>
 
         {/* header */}
-        <div style={{ flexShrink:0,background:T.hdr,backdropFilter:"blur(20px)",borderBottom:`1px solid ${T.bdr}`,padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,zIndex:100,transition:"background .25s" }}>
+        <div style={{ flexShrink:0,background:"rgba(7,7,14,0.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${bdr}`,padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,zIndex:100 }}>
           {page!=="album"?(
-            <button onClick={()=>setPage("album")} style={{ background:"none",border:`1px solid ${T.bdr}`,borderRadius:8,color:gold,fontSize:".75rem",fontWeight:800,fontFamily:font.body,padding:"5px 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>← Álbum</button>
+            <button onClick={()=>setPage("album")} style={{ background:"none",border:`1px solid ${bdr}`,borderRadius:8,color:gold,fontSize:".75rem",fontWeight:800,fontFamily:font.body,padding:"5px 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>← Álbum</button>
           ):(
             <span style={{ fontSize:24,filter:"drop-shadow(0 0 14px rgba(255,215,0,.65))" }}>🏆</span>
           )}
@@ -1185,47 +1122,36 @@ export default function App() {
             <div style={{ fontFamily:font.title,fontSize:"1.3rem",letterSpacing:"2.5px",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1 }}>
               {PAGE_TITLES[page]||"COPA 2026"}
             </div>
-            {page==="album"&&<div style={{ fontSize:".6rem",color:T.muted,fontWeight:800,letterSpacing:".5px",textTransform:"uppercase",marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>}
+            {page==="album"&&<div style={{ fontSize:".6rem",color:muted,fontWeight:800,letterSpacing:".5px",textTransform:"uppercase",marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>}
           </div>
-
-          {/* theme toggle */}
-          <button
-            onClick={toggleTheme}
-            title={theme==="dark"?"Modo claro":"Modo escuro"}
-            style={{ background:theme==="light"?"rgba(255,200,0,0.12)":"rgba(255,255,255,0.05)", border:`1.5px solid ${T.bdr}`, borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:16, lineHeight:1, WebkitTapHighlightColor:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>
-            {theme==="dark" ? "☀️" : "🌙"}
-          </button>
-
-          {/* lock */}
           <button
             onClick={()=>setLocked(l=>!l)}
             title={locked?"Desbloquear edição":"Bloquear edição"}
             style={{ background:locked?"rgba(255,68,68,0.12)":"rgba(255,215,0,0.06)", border:`1.5px solid ${locked?"rgba(255,68,68,0.5)":"rgba(255,215,0,0.2)"}`, borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:16, lineHeight:1, WebkitTapHighlightColor:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>
             {locked ? "🔒" : "🔓"}
           </button>
-
-          <HamburgerMenu onSelect={setPage} T={T} />
+          <HamburgerMenu onSelect={setPage} />
         </div>
 
         {/* scroll area */}
         <div style={{ flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch" }}>
-          {page==="album"   && <AlbumPage    col={col} onUpdate={update} onNavigate={setPage} onGroupComplete={handleGroupComplete} locked={locked} T={T} />}
-          {page==="doubles" && <DoublesPage  col={col} T={T} />}
-          {page==="have"    && <HavePage     col={col} T={T} />}
-          {page==="miss"    && <MissPage     col={col} T={T} />}
-          {page==="search"  && <SearchPage   col={col} T={T} />}
-          {page==="trade"   && <TradePage    col={col} onToast={showToast} T={T} />}
-          {page==="packets" && <PacketsPage  packets={packets} onAdd={addPacket} onRemove={removePacket} onReset={resetPackets} onToast={showToast} T={T} />}
-          {page==="progress"&& <ProgressPage col={col} T={T} />}
-          {page==="map"     && <WorldMapPage col={col} T={T} />}
-          {page==="reports" && <ReportsPage  col={col} onToast={showToast} T={T} />}
-          {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast} T={T} />}
-          {page==="sobre"   && <SobrePage    T={T} />}
+          {page==="album"   && <AlbumPage    col={col} onUpdate={update} onNavigate={setPage} onGroupComplete={handleGroupComplete} locked={locked} />}
+          {page==="doubles" && <DoublesPage  col={col} />}
+          {page==="have"    && <HavePage     col={col} />}
+          {page==="miss"    && <MissPage     col={col} />}
+          {page==="search"  && <SearchPage   col={col} />}
+          {page==="trade"   && <TradePage    col={col} onToast={showToast} />}
+          {page==="packets" && <PacketsPage  packets={packets} onAdd={addPacket} onRemove={removePacket} onReset={resetPackets} onToast={showToast} />}
+          {page==="progress"&& <ProgressPage col={col} />}
+          {page==="map"     && <WorldMapPage col={col} />}
+          {page==="reports" && <ReportsPage  col={col} onToast={showToast} />}
+          {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast} />}
+          {page==="sobre"   && <SobrePage />}
         </div>
 
         {toast && <Toast msg={toast.msg} type={toast.type} />}
         {confetti && <Confetti onDone={()=>setConfetti(false)} />}
-        {banner && <GroupBanner grp={banner} onDone={()=>setBanner(null)} T={T} />}
+        {banner && <GroupBanner grp={banner} onDone={()=>setBanner(null)} />}
       </div>
     </>
   );

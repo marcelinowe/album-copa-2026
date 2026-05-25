@@ -169,6 +169,9 @@ function themeCSS(themeKey) {
 }
 
 // Shorthand JS references (use in inline styles)
+// Bare variable aliases for complex expressions
+const bdr  = "var(--bdr)";
+const text = "var(--text)";
 const C = {
   bg:      "var(--bg)",
   card:    "var(--card)",
@@ -352,7 +355,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked}) {
     <div style={{ marginBottom:4 }}>
       <div style={{ display:"flex",alignItems:"center",gap:8,padding:"12px 12px 5px",fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px" }}>
         <span style={{ background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>{grp.name}</span>
-        <div style={{ flex:1,height:1,background:bdr }} />
+        <div style={{ flex:1,height:1,background:\"var(--bdr)\" }} />
         <span style={{ fontFamily:font.body,fontSize:".62rem",color:"var(--muted)",fontWeight:800 }}>{grpOwned}/{grpTotal}</span>
       </div>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7,padding:"0 12px 6px" }}>
@@ -403,7 +406,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked}) {
     <>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 12px 6px" }}>
         {statCards.map(({label,value,nav})=>(
-          <div key={label} onClick={()=>nav&&onNavigate(nav)} style={{ background:"var(--card)",border:`1px solid ${nav?"rgba(255,215,0,0.3)":bdr}`,borderRadius:13,padding:"10px 4px",textAlign:"center",cursor:nav?"pointer":"default",WebkitTapHighlightColor:"transparent",position:"relative",transition:"border-color .15s" }}>
+          <div key={label} onClick={()=>nav&&onNavigate(nav)} style={{ background:"var(--card)",border:`1px solid ${nav?"rgba(255,215,0,0.3)":\"var(--bdr)\"}`,borderRadius:13,padding:"10px 4px",textAlign:"center",cursor:nav?"pointer":"default",WebkitTapHighlightColor:"transparent",position:"relative",transition:"border-color .15s" }}>
             <div style={{ fontFamily:font.title,fontSize:"1.5rem",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1 }}>{value}</div>
             <div style={{ fontSize:".55rem",color:nav?gold:muted,fontWeight:800,textTransform:"uppercase",letterSpacing:".3px",marginTop:2 }}>{label}</div>
             {nav&&<div style={{ position:"absolute",bottom:4,left:"50%",transform:"translateX(-50%)",width:16,height:2,background:`linear-gradient(90deg,${gold},${gold2})`,borderRadius:99,opacity:.6 }} />}
@@ -596,7 +599,7 @@ function TradePage({ col, onToast}) {
               const sel=selected.has(s.id);
               return (
                 <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":text,WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
+                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":\"var(--bdr)\"}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
                   {s.team.flag} {s.label}
                   <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>×{s.extra}</span>
                 </div>
@@ -870,7 +873,7 @@ function ProgressPage({ col}) {
             <div key={grp.id} style={{ marginBottom:10 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                 <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:text }}>{grp.name}</span>
+                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:"var(--text)" }}>{grp.name}</span>
                   <div style={{ display:"flex",gap:3 }}>
                     {grp.teams.map(t=>{ const {full:tf}=teamProgress(t,col); return <span key={t.id} style={{ fontSize:12 }}>{tf?"✅":t.flag}</span>; })}
                   </div>
@@ -893,7 +896,7 @@ function ProgressPage({ col}) {
           {GROUPS.flatMap(g=>g.teams).map(team=>{
             const {owned,total,pct,full}=teamProgress(team,col);
             return (
-              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":bdr}`,borderRadius:10,padding:"8px 10px" }}>
+              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":\"var(--bdr)\"}`,borderRadius:10,padding:"8px 10px" }}>
                 <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:4 }}>
                   <span style={{ fontSize:16 }}>{team.flag}</span>
                   <span style={{ fontFamily:font.title,fontSize:".75rem",letterSpacing:".8px",flex:1 }}>{team.code}</span>
@@ -1018,7 +1021,7 @@ function WorldMapPage({ col}) {
           {ALL_TEAMS.map(team=>{
             const {pct,full,owned,total}=teamProgress(team,col);
             return (
-              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":pct>0?"rgba(255,215,0,.2)":bdr}`,borderRadius:9,padding:"7px 8px",display:"flex",alignItems:"center",gap:5 }}>
+              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":pct>0?"rgba(255,215,0,.2)":\"var(--bdr)\"}`,borderRadius:9,padding:"7px 8px",display:"flex",alignItems:"center",gap:5 }}>
                 <span style={{ fontSize:16 }}>{team.flag}</span>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontFamily:font.title,fontSize:".65rem",letterSpacing:".5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{team.code}</div>

@@ -111,6 +111,7 @@ const KEY       = "copa2026_col";
 const PKT_KEY   = "copa2026_pkt";
 const AVU_KEY   = "copa2026_avu";
 const LOCK_KEY  = "copa2026_lock";
+const CELE_KEY  = "copa2026_celebrated";
 const THEME_KEY = "copa2026_theme";
 const PRICE     = 7;
 
@@ -122,6 +123,8 @@ function loadAvu() { try { return JSON.parse(localStorage.getItem(AVU_KEY)||"[]"
 function persistAvu(a) { try { localStorage.setItem(AVU_KEY, JSON.stringify(a)); } catch {} }
 function loadLock() { return localStorage.getItem(LOCK_KEY) === "1"; }
 function persistLock(v) { localStorage.setItem(LOCK_KEY, v ? "1" : "0"); }
+function loadCelebrated() { try { return new Set(JSON.parse(localStorage.getItem(CELE_KEY)||"[]")); } catch { return new Set(); } }
+function persistCelebrated(s) { localStorage.setItem(CELE_KEY, JSON.stringify([...s])); }
 function loadTheme() { return localStorage.getItem(THEME_KEY) || "dark"; }
 function persistTheme(v) { localStorage.setItem(THEME_KEY, v); }
 
@@ -375,20 +378,23 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked}) {
 function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked}) {
   const [search,setSearch]         = useState("");
   const [openTeamId,setOpenTeamId] = useState(null);
-  const prevCompletedRef           = useRef(new Set());
 
   const toggle = useCallback((teamId) => setOpenTeamId(p=>p===teamId?null:teamId),[]);
 
-  // detect group completion
+  // detect group completion — only fire once per device
   useEffect(()=>{
+    const celebrated = loadCelebrated();
+    let changed = false;
     GROUPS.forEach(grp=>{
       if(grp.id==="special") return;
       const allFull = grp.teams.every(t=>teamProgress(t,col).full);
-      if(allFull && !prevCompletedRef.current.has(grp.id)){
-        prevCompletedRef.current.add(grp.id);
+      if(allFull && !celebrated.has(grp.id)){
+        celebrated.add(grp.id);
+        changed = true;
         onGroupComplete(grp);
       }
     });
+    if(changed) persistCelebrated(celebrated);
   },[col]);
 
   const vals=Object.values(col);

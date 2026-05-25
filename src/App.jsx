@@ -109,23 +109,85 @@ const ALL_TEAMS = GROUPS.flatMap(g => g.teams);
 const TOTAL     = ALL_TEAMS.reduce((a,t) => a + t.stickers.length, 0);
 const KEY       = "copa2026_col";
 const PKT_KEY   = "copa2026_pkt";
+const AVU_KEY   = "copa2026_avu";
+const LOCK_KEY  = "copa2026_lock";
+const THEME_KEY = "copa2026_theme";
 const PRICE     = 7;
 
 function loadCol() { try { return JSON.parse(localStorage.getItem(KEY)||"{}"); } catch { return {}; } }
 function persistCol(c) { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch {} }
 function loadPkt() { try { return parseInt(localStorage.getItem(PKT_KEY)||"0"); } catch { return 0; } }
 function persistPkt(n) { try { localStorage.setItem(PKT_KEY, String(n)); } catch {} }
+function loadAvu() { try { return JSON.parse(localStorage.getItem(AVU_KEY)||"[]"); } catch { return []; } }
+function persistAvu(a) { try { localStorage.setItem(AVU_KEY, JSON.stringify(a)); } catch {} }
+function loadLock() { return localStorage.getItem(LOCK_KEY) === "1"; }
+function persistLock(v) { localStorage.setItem(LOCK_KEY, v ? "1" : "0"); }
+function loadTheme() { return localStorage.getItem(THEME_KEY) || "dark"; }
+function persistTheme(v) { localStorage.setItem(THEME_KEY, v); }
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
 const gold  = "#FFD700";
 const gold2 = "#FFA500";
-const dark  = "#07070e";
-const card  = "#14142a";
-const bdr   = "rgba(255,215,0,0.13)";
-const muted = "#666";
 const green = "#00c853";
 const red   = "#ff4444";
 const font  = { title:"'Bebas Neue', sans-serif", body:"'Nunito', sans-serif" };
+
+// All colors go through CSS variables — no T prop needed in components
+// Components just use var(--card), var(--bdr), etc.
+const THEMES = {
+  dark: {
+    "--bg":      "#07070e",
+    "--card":    "#14142a",
+    "--card2":   "#1a1a35",
+    "--bdr":     "rgba(255,215,0,0.13)",
+    "--bdr-rgb": "255,215,0,0.13",
+    "--text":    "#efefef",
+    "--muted":   "#666",
+    "--hdr":     "rgba(7,7,14,0.97)",
+    "--input-bg":"#14142a",
+    "--ph":      "#555",
+    "--bg-img":  "radial-gradient(ellipse at 10% 0%,rgba(255,215,0,0.07) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.05) 0%,transparent 55%)",
+  },
+  light: {
+    "--bg":      "#f0f2f5",
+    "--card":    "#ffffff",
+    "--card2":   "#f0f2f5",
+    "--bdr":     "rgba(160,120,0,0.2)",
+    "--bdr-rgb": "160,120,0,0.2",
+    "--text":    "#111111",
+    "--muted":   "#999",
+    "--hdr":     "rgba(240,242,245,0.97)",
+    "--input-bg":"#e8eaed",
+    "--ph":      "#aaa",
+    "--bg-img":  "radial-gradient(ellipse at 10% 0%,rgba(255,200,0,0.06) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.04) 0%,transparent 55%)",
+  },
+};
+
+function themeCSS(themeKey) {
+  const vars = THEMES[themeKey] || THEMES.dark;
+  return Object.entries(vars).map(([k,v]) => `${k}:${v};`).join("");
+}
+
+// Shorthand JS references (use in inline styles)
+// Bare variable aliases for complex expressions
+const bdr     = "var(--bdr)";
+const text    = "var(--text)";
+const muted   = "var(--muted)";
+const card    = "var(--card)";
+const card2   = "var(--card2)";
+const bg      = "var(--bg)";
+const inputBg = "var(--input-bg)";
+const hdr     = "var(--hdr)";
+const C = {
+  bg:      "var(--bg)",
+  card:    "var(--card)",
+  card2:   "var(--card2)",
+  bdr:     "var(--bdr)",
+  text:    "var(--text)",
+  muted:   "var(--muted)",
+  hdr:     "var(--hdr)",
+  inputBg: "var(--input-bg)",
+};
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function teamProgress(team, col) {
@@ -134,7 +196,7 @@ function teamProgress(team, col) {
 }
 
 // ─── CLEARABLE INPUT ─────────────────────────────────────────────────────────
-function ClearableInput({ value, onChange, placeholder, autoFocus, style }) {
+function ClearableInput({ value, onChange, placeholder, autoFocus, style}) {
   return (
     <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
       <input
@@ -197,37 +259,38 @@ function Confetti({ onDone }) {
 }
 
 // ─── GROUP COMPLETE BANNER ────────────────────────────────────────────────────
-function GroupBanner({ grp, onDone }) {
+function GroupBanner({ grp, onDone}) {
   useEffect(() => { const t = setTimeout(onDone, 2500); return ()=>clearTimeout(t); }, []);
   return (
     <div style={{ position:"fixed",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:998,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(4px)" }}>
-      <div style={{ background:card,border:`2px solid ${gold}`,borderRadius:20,padding:"32px 40px",textAlign:"center",animation:"slideDown .3s ease",boxShadow:`0 0 40px rgba(255,215,0,0.3)` }}>
+      <div style={{ background:"var(--card)",border:`2px solid ${gold}`,borderRadius:20,padding:"32px 40px",textAlign:"center",animation:"slideDown .3s ease",boxShadow:`0 0 40px rgba(255,215,0,0.3)` }}>
         <div style={{ fontSize:52, marginBottom:8 }}>🏆</div>
         <div style={{ fontFamily:font.title,fontSize:"1.6rem",letterSpacing:"2px",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>GRUPO COMPLETO!</div>
-        <div style={{ color:"#efefef",fontWeight:800,marginTop:6,fontSize:".9rem" }}>{grp.name}</div>
-        <div style={{ color:muted,fontSize:".75rem",marginTop:4 }}>Parabéns! 🎉</div>
+        <div style={{ color:"var(--text)",fontWeight:800,marginTop:6,fontSize:".9rem" }}>{grp.name}</div>
+        <div style={{ color:"var(--muted)",fontSize:".75rem",marginTop:4 }}>Parabéns! 🎉</div>
       </div>
     </div>
   );
 }
 
 // ─── STICKER CELL ─────────────────────────────────────────────────────────────
-function StickerCell({ s, qty, onInc, onDec, locked }) {
-  const st  = qty===0?"empty":qty===1?"have":"dbl";
-  const ico = qty===0?"✦":qty===1?"✅":"⭐";
-  const bc  = st==="have"?green:st==="dbl"?gold:bdr;
-  const bg  = st==="have"?"linear-gradient(135deg,rgba(0,200,83,.13),rgba(0,200,83,.03))":st==="dbl"?"linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,165,0,.05))":"rgba(255,255,255,0.02)";
-  const lc  = st==="have"?"#69ff94":st==="dbl"?gold:muted;
+function StickerCell({ s, qty, onInc, onDec, locked}) {
+  const st    = qty===0?"empty":qty===1?"have":"dbl";
+  const ico   = qty===0?"✦":qty===1?"✅":"⭐";
+  const bc    = st==="have"?green:st==="dbl"?gold:bdr;
+  const stkBg = st==="have"?"linear-gradient(135deg,rgba(0,200,83,.13),rgba(0,200,83,.03))":st==="dbl"?"linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,165,0,.05))":"rgba(255,255,255,0.02)";
+  const lc    = st==="have"?"#69ff94":st==="dbl"?gold:muted;
+  const qb    = { width:17,height:17,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"var(--text)",borderRadius:4,fontSize:13,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
   return (
-    <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
+    <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:stkBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
       {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:15,height:15,background:gold,color:"#000",borderRadius:"50%",fontSize:".5rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}
       <div style={{ fontSize:13,marginBottom:1 }}>{ico}</div>
       <div style={{ fontSize:".5rem",fontWeight:800,color:lc,textTransform:"uppercase",letterSpacing:".2px",textAlign:"center",lineHeight:1.2 }}>{s.label}</div>
       {qty>0&&!locked&&(
         <div style={{ display:"flex",alignItems:"center",gap:1,marginTop:2 }} onClick={e=>e.stopPropagation()}>
-          <button onClick={onDec} style={qbSt}>−</button>
+          <button onClick={onDec} style={qb}>−</button>
           <span style={{ fontSize:".58rem",fontWeight:800,minWidth:11,textAlign:"center" }}>{qty}</span>
-          <button onClick={onInc} style={qbSt}>+</button>
+          <button onClick={onInc} style={qb}>+</button>
         </div>
       )}
       {qty>0&&locked&&(
@@ -236,19 +299,18 @@ function StickerCell({ s, qty, onInc, onDec, locked }) {
     </div>
   );
 }
-const qbSt={ width:17,height:17,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"#efefef",borderRadius:4,fontSize:13,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
 
 // ─── STICKER PANEL ────────────────────────────────────────────────────────────
-function StickerPanel({ team, col, onUpdate, onClose, locked }) {
+function StickerPanel({ team, col, onUpdate, onClose, locked}) {
   const { owned, total } = teamProgress(team, col);
   return (
     <div style={{ gridColumn:"1/-1",background:"rgba(255,215,0,0.03)",border:`1.5px solid ${locked?"rgba(255,68,68,.3)":"rgba(255,215,0,.2)"}`,borderRadius:13,overflow:"hidden",animation:"slideDown .18s ease" }}>
       <div style={{ display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderBottom:`1px solid ${locked?"rgba(255,68,68,.1)":"rgba(255,215,0,.1)"}`,background:locked?"rgba(255,68,68,0.04)":"rgba(255,215,0,0.04)" }}>
         <span style={{ fontSize:18 }}>{team.flag}</span>
         <span style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1 }}>{team.name}</span>
-        <span style={{ fontFamily:font.body,fontSize:".62rem",color:muted,fontWeight:800 }}>{owned}/{total}</span>
+        <span style={{ fontFamily:font.body,fontSize:".62rem",color:"var(--muted)",fontWeight:800 }}>{owned}/{total}</span>
         {locked && <span style={{ fontSize:".65rem",fontWeight:800,color:"#ff6b6b",background:"rgba(255,68,68,0.12)",border:"1px solid rgba(255,68,68,.3)",borderRadius:6,padding:"2px 7px" }}>🔒 Bloqueado</span>}
-        <button onClick={onClose} style={{ marginLeft:"auto",background:"none",border:`1px solid ${bdr}`,borderRadius:6,color:muted,fontSize:".68rem",fontWeight:800,fontFamily:font.body,cursor:"pointer",padding:"3px 9px",WebkitTapHighlightColor:"transparent" }}>✕ Fechar</button>
+        <button onClick={onClose} style={{ marginLeft:"auto",background:"none",border:"1px solid var(--bdr)",borderRadius:6,color:"var(--muted)",fontSize:".68rem",fontWeight:800,fontFamily:font.body,cursor:"pointer",padding:"3px 9px",WebkitTapHighlightColor:"transparent" }}>✕ Fechar</button>
       </div>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,padding:8 }}>
         {team.stickers.map(s=>(
@@ -263,14 +325,14 @@ function StickerPanel({ team, col, onUpdate, onClose, locked }) {
 }
 
 // ─── TEAM CARD ────────────────────────────────────────────────────────────────
-function TeamCard({ team, col, isOpen, onToggle }) {
+function TeamCard({ team, col, isOpen, onToggle}) {
   const { owned, total, pct, full } = teamProgress(team, col);
   const bc = isOpen?"rgba(255,215,0,.6)":full?"rgba(0,200,83,.45)":bdr;
   return (
     <div onClick={onToggle} style={{ background:isOpen?"rgba(255,215,0,0.05)":card,border:`1.5px solid ${bc}`,borderRadius:13,cursor:"pointer",WebkitTapHighlightColor:"transparent",userSelect:"none",overflow:"hidden",transition:"border-color .15s" }}>
       <div style={{ padding:"10px 6px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:1 }}>
         <span style={{ fontSize:24,lineHeight:1 }}>{team.flag}</span>
-        <span style={{ fontFamily:font.title,fontSize:".72rem",letterSpacing:1,color:muted,marginTop:2 }}>{team.code}</span>
+        <span style={{ fontFamily:font.title,fontSize:".72rem",letterSpacing:1,color:"var(--muted)",marginTop:2 }}>{team.code}</span>
         <span style={{ fontFamily:font.body,fontSize:".6rem",fontWeight:800,textAlign:"center",lineHeight:1.2 }}>{team.name}</span>
         <span style={{ fontSize:".56rem",fontWeight:800,color:full?green:muted,marginTop:2 }}>{owned}/{total}</span>
         <div style={{ width:"100%",height:3,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden",marginTop:4 }}>
@@ -282,7 +344,7 @@ function TeamCard({ team, col, isOpen, onToggle }) {
 }
 
 // ─── GROUP SECTION ────────────────────────────────────────────────────────────
-function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked }) {
+function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked}) {
   const grpOwned = grp.teams.reduce((a,t)=>a+teamProgress(t,col).owned,0);
   const grpTotal = grp.teams.reduce((a,t)=>a+t.stickers.length,0);
   const COLS=2;
@@ -300,7 +362,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked }) {
       <div style={{ display:"flex",alignItems:"center",gap:8,padding:"12px 12px 5px",fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px" }}>
         <span style={{ background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>{grp.name}</span>
         <div style={{ flex:1,height:1,background:bdr }} />
-        <span style={{ fontFamily:font.body,fontSize:".62rem",color:muted,fontWeight:800 }}>{grpOwned}/{grpTotal}</span>
+        <span style={{ fontFamily:font.body,fontSize:".62rem",color:"var(--muted)",fontWeight:800 }}>{grpOwned}/{grpTotal}</span>
       </div>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7,padding:"0 12px 6px" }}>
         {children}
@@ -310,7 +372,7 @@ function GroupSection({ grp, col, openTeamId, onToggle, onUpdate, locked }) {
 }
 
 // ─── ALBUM PAGE ───────────────────────────────────────────────────────────────
-function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
+function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked}) {
   const [search,setSearch]         = useState("");
   const [openTeamId,setOpenTeamId] = useState(null);
   const prevCompletedRef           = useRef(new Set());
@@ -350,7 +412,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
     <>
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 12px 6px" }}>
         {statCards.map(({label,value,nav})=>(
-          <div key={label} onClick={()=>nav&&onNavigate(nav)} style={{ background:card,border:`1px solid ${nav?"rgba(255,215,0,0.3)":bdr}`,borderRadius:13,padding:"10px 4px",textAlign:"center",cursor:nav?"pointer":"default",WebkitTapHighlightColor:"transparent",position:"relative",transition:"border-color .15s" }}>
+          <div key={label} onClick={()=>nav&&onNavigate(nav)} style={{ background:"var(--card)",border:`1px solid ${nav?"rgba(255,215,0,0.3)":bdr}`,borderRadius:13,padding:"10px 4px",textAlign:"center",cursor:nav?"pointer":"default",WebkitTapHighlightColor:"transparent",position:"relative",transition:"border-color .15s" }}>
             <div style={{ fontFamily:font.title,fontSize:"1.5rem",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1 }}>{value}</div>
             <div style={{ fontSize:".55rem",color:nav?gold:muted,fontWeight:800,textTransform:"uppercase",letterSpacing:".3px",marginTop:2 }}>{label}</div>
             {nav&&<div style={{ position:"absolute",bottom:4,left:"50%",transform:"translateX(-50%)",width:16,height:2,background:`linear-gradient(90deg,${gold},${gold2})`,borderRadius:99,opacity:.6 }} />}
@@ -358,7 +420,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
         ))}
       </div>
       <div style={{ padding:"2px 12px 8px" }}>
-        <div style={{ display:"flex",justifyContent:"space-between",fontSize:".68rem",color:muted,fontWeight:800,marginBottom:4 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",fontSize:".68rem",color:"var(--muted)",fontWeight:800,marginBottom:4 }}>
           <span>Progresso geral</span><span>{have} / {TOTAL}</span>
         </div>
         <div style={{ height:6,background:"rgba(255,255,255,0.05)",borderRadius:99,overflow:"hidden" }}>
@@ -370,7 +432,8 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
           value={search}
           onChange={setSearch}
           placeholder="🔍 Buscar (ex: BRA 7, Brasil, Grupo C...)"
-          style={{ padding:"10px 14px", background:card, border:`1.5px solid ${bdr}`, borderRadius:10, color:"#efefef", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
+          
+          style={{ padding:"10px 14px", background:"var(--card)", border:"1.5px solid var(--bdr)", borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".9rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {filtered.map(grp=>(
@@ -382,7 +445,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked }) {
 }
 
 // ─── HAVE PAGE ────────────────────────────────────────────────────────────────
-function HavePage({ col }) {
+function HavePage({ col}) {
   const sections=[];
   for(const grp of GROUPS){
     const ti=[];
@@ -394,15 +457,15 @@ function HavePage({ col }) {
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>✅ TENHO</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>{total} figurinha{total!==1?"s":""} na sua coleção</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>{total} figurinha{total!==1?"s":""} na sua coleção</p>
       </div>
-      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:muted }}><div style={{ fontSize:46,marginBottom:10 }}>📦</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma figurinha ainda!</p></div>)
+      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>📦</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma figurinha ainda!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:card,borderTop:`1px solid ${bdr}`,borderBottom:`1px solid ${bdr}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
-              <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:muted,fontWeight:700}}>({items.length}/{team.stickers.length})</span></div>
+              <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:"var(--muted)",fontWeight:700}}>({items.length}/{team.stickers.length})</span></div>
               <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 6px" }}>
                 {items.map(s=><div key={s.id} style={{ background:"linear-gradient(135deg,rgba(0,200,83,.12),rgba(0,200,83,.03))",border:"1.5px solid rgba(0,200,83,.3)",borderRadius:7,padding:"4px 9px",fontSize:".7rem",fontWeight:800,color:green }}>{s.label}</div>)}
               </div>
@@ -416,7 +479,7 @@ function HavePage({ col }) {
 }
 
 // ─── MISS PAGE ────────────────────────────────────────────────────────────────
-function MissPage({ col }) {
+function MissPage({ col}) {
   const sections=[];
   for(const grp of GROUPS){
     const ti=[];
@@ -428,15 +491,15 @@ function MissPage({ col }) {
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>❌ FALTAM</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>{total} figurinha{total!==1?"s":""} faltando</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>{total} figurinha{total!==1?"s":""} faltando</p>
       </div>
-      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:muted }}><div style={{ fontSize:46,marginBottom:10 }}>🏆</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Álbum completo! Parabéns!</p></div>)
+      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🏆</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Álbum completo! Parabéns!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:card,borderTop:`1px solid ${bdr}`,borderBottom:`1px solid ${bdr}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
-              <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:muted,fontWeight:700}}>({items.length} faltando)</span></div>
+              <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong> <span style={{color:"var(--muted)",fontWeight:700}}>({items.length} faltando)</span></div>
               <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 6px" }}>
                 {items.map(s=><div key={s.id} style={{ background:"rgba(255,68,68,0.08)",border:"1.5px solid rgba(255,68,68,.25)",borderRadius:7,padding:"4px 9px",fontSize:".7rem",fontWeight:800,color:"#ff6b6b" }}>{s.label}</div>)}
               </div>
@@ -450,7 +513,7 @@ function MissPage({ col }) {
 }
 
 // ─── DOUBLES PAGE ─────────────────────────────────────────────────────────────
-function DoublesPage({ col }) {
+function DoublesPage({ col}) {
   let totalExtra=0;
   const sections=[];
   for(const grp of GROUPS){
@@ -462,12 +525,12 @@ function DoublesPage({ col }) {
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>⭐ REPETIDAS</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>{totalExtra>0?`${totalExtra} figurinha${totalExtra!==1?"s":""} para trocar`:"Nenhuma repetida ainda"}</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>{totalExtra>0?`${totalExtra} figurinha${totalExtra!==1?"s":""} para trocar`:"Nenhuma repetida ainda"}</p>
       </div>
-      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:muted }}><div style={{ fontSize:46,marginBottom:10 }}>🎉</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida ainda!</p></div>)
+      {sections.length===0?(<div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🎉</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida ainda!</p></div>)
       :sections.map(({grp,ti})=>(
         <div key={grp.id}>
-          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:card,borderTop:`1px solid ${bdr}`,borderBottom:`1px solid ${bdr}`,margin:"5px 0 0" }}>⚽ {grp.name}</div>
+          <div style={{ padding:"8px 12px",fontFamily:font.title,fontSize:".85rem",letterSpacing:1,color:gold,background:"var(--card)",borderTop:"1px solid var(--bdr)",borderBottom:"1px solid var(--bdr)",margin:"5px 0 0" }}>⚽ {grp.name}</div>
           {ti.map(({team,items})=>(
             <div key={team.id}>
               <div style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px 3px",fontFamily:font.body,fontSize:".75rem",fontWeight:800 }}>{team.flag} <strong>{team.name}</strong></div>
@@ -484,7 +547,7 @@ function DoublesPage({ col }) {
 }
 
 // ─── TRADE PAGE ───────────────────────────────────────────────────────────────
-function TradePage({ col, onToast }) {
+function TradePage({ col, onToast}) {
   const [selected, setSelected] = useState(new Set());
 
   const allDoubles = [];
@@ -511,30 +574,30 @@ function TradePage({ col, onToast }) {
     });
     lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
     lines.push("_Álbum Copa 2026_");
-    const text=encodeURIComponent(lines.join("\n"));
-    window.open(`https://api.whatsapp.com/send?text=${text}`,"_blank");
+    const encoded=encodeURIComponent(lines.join("\n"));
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`,"_blank");
   }
 
   return (
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔄 MODO TROCA</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Selecione as repetidas e compartilhe no WhatsApp</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Selecione as repetidas e compartilhe no WhatsApp</p>
       </div>
 
       {allDoubles.length===0?(
-        <div style={{ textAlign:"center",padding:"50px 20px",color:muted }}><div style={{ fontSize:46,marginBottom:10 }}>🔄</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida para trocar ainda!</p></div>
+        <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🔄</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida para trocar ainda!</p></div>
       ):(
         <>
           <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:`1px solid ${bdr}`,borderRadius:10,background:card,color:"#efefef",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
               {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
             </button>
             <button onClick={shareWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
               📲 WHATSAPP
             </button>
           </div>
-          <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:muted,fontWeight:800 }}>
+          <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
             {selected.size} de {allDoubles.length} selecionadas
           </div>
           <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
@@ -542,7 +605,7 @@ function TradePage({ col, onToast }) {
               const sel=selected.has(s.id);
               return (
                 <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"#efefef",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
+                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
                   {s.team.flag} {s.label}
                   <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>×{s.extra}</span>
                 </div>
@@ -557,7 +620,7 @@ function TradePage({ col, onToast }) {
 }
 
 // ─── SEARCH PAGE ──────────────────────────────────────────────────────────────
-function SearchPage({ col }) {
+function SearchPage({ col}) {
   const [q,setQ] = useState("");
 
   const result = q.trim().length>=2 ? (() => {
@@ -578,7 +641,7 @@ function SearchPage({ col }) {
     <div>
       <div style={{ padding:"16px 12px 10px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔍 BUSCA RÁPIDA</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Digite o código ou nome para verificar status</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Digite o código ou nome para verificar status</p>
       </div>
       <div style={{ padding:"0 12px 12px" }}>
         <ClearableInput
@@ -586,21 +649,22 @@ function SearchPage({ col }) {
           onChange={setQ}
           placeholder="Ex: BRA 7, ARG 15, Brasil..."
           autoFocus
-          style={{ padding:"12px 16px", background:card, border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:"#efefef", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
+          
+          style={{ padding:"12px 16px", background:"var(--card)", border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:"var(--text)", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
       {q.trim().length>0&&q.trim().length<2&&(
-        <div style={{ textAlign:"center",padding:"20px",color:muted,fontSize:".8rem",fontWeight:700 }}>Digite ao menos 2 caracteres...</div>
+        <div style={{ textAlign:"center",padding:"20px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>Digite ao menos 2 caracteres...</div>
       )}
       {result.length>0&&(
         <div style={{ padding:"0 12px" }}>
-          <div style={{ fontSize:".7rem",color:muted,fontWeight:800,marginBottom:8 }}>{result.length} resultado{result.length!==1?"s":""}</div>
+          <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:800,marginBottom:8 }}>{result.length} resultado{result.length!==1?"s":""}</div>
           {result.map(({s,team,grp,qty})=>(
-            <div key={s.id} style={{ background:card,border:`1px solid ${bdr}`,borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10 }}>
+            <div key={s.id} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10 }}>
               <span style={{ fontSize:24 }}>{team.flag}</span>
               <div style={{ flex:1 }}>
                 <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px" }}>{s.label}</div>
-                <div style={{ fontSize:".7rem",color:muted,fontWeight:700,marginTop:1 }}>{team.name} · {grp.name}</div>
+                <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:700,marginTop:1 }}>{team.name} · {grp.name}</div>
               </div>
               <div style={{ textAlign:"right" }}>
                 <div style={{ fontSize:".72rem",fontWeight:800,color:statusColor(qty) }}>{statusIcon(qty)}</div>
@@ -611,7 +675,7 @@ function SearchPage({ col }) {
         </div>
       )}
       {result.length===0&&q.trim().length>=2&&(
-        <div style={{ textAlign:"center",padding:"30px 20px",color:muted }}><div style={{ fontSize:36,marginBottom:8 }}>🤷</div><p style={{ fontSize:".85rem",fontWeight:700 }}>Nenhuma figurinha encontrada.</p></div>
+        <div style={{ textAlign:"center",padding:"30px 20px",color:"var(--muted)" }}><div style={{ fontSize:36,marginBottom:8 }}>🤷</div><p style={{ fontSize:".85rem",fontWeight:700 }}>Nenhuma figurinha encontrada.</p></div>
       )}
       <div style={{ height:14 }} />
     </div>
@@ -619,76 +683,191 @@ function SearchPage({ col }) {
 }
 
 // ─── PACKETS PAGE ─────────────────────────────────────────────────────────────
-function PacketsPage({ packets, onAdd, onRemove, onReset, onToast }) {
-  const total = packets * PRICE;
-  const [confirm,setConfirm] = useState(false);
+function PacketsPage({ packets, onAdd, onRemove, onReset, avulsas, onAddAvu, onRemoveAvu, onResetAvu, onToast}) {
+  const [confirm, setConfirm]   = useState(false);
+  const [confAvu, setConfAvu]   = useState(false);
+  const [label,   setLabel]     = useState("");
+  const [price,   setPrice]     = useState("");
+  const [qty,     setQty]       = useState("1");
+
+  const pktTotal  = packets * PRICE;
+  const avuTotal  = avulsas.reduce((a,i) => a + (i.price * (i.qty||1)), 0);
+  const grandTotal = pktTotal + avuTotal;
+  const pktFigs   = packets * 7;
+  const avuFigs   = avulsas.reduce((a,i) => a + (i.qty||1), 0);
+  const totalFigs  = pktFigs + avuFigs;
+  const costPerFig = totalFigs > 0 ? (grandTotal / totalFigs).toFixed(2).replace(".",",") : "0,00";
+
+  function addAvulsa() {
+    const p = parseFloat(price.replace(",","."));
+    const q = parseInt(qty) || 1;
+    if (!label.trim())       { onToast("Digite uma descrição","err"); return; }
+    if (isNaN(p) || p <= 0)  { onToast("Digite um valor válido","err"); return; }
+    if (q < 1)               { onToast("Quantidade inválida","err"); return; }
+    onAddAvu({ id: Date.now(), label: label.trim(), price: p, qty: q });
+    setLabel(""); setPrice(""); setQty("1");
+    onToast("✅ Figurinha avulsa adicionada","ok");
+  }
+
+  const inputSt = { flex:1, padding:"10px 12px", background:"var(--input-bg)", border:"1.5px solid var(--bdr)", borderRadius:10, color:"var(--text)", fontFamily:font.body, fontSize:".88rem", outline:"none", WebkitAppearance:"none", minWidth:0 };
 
   return (
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
-        <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>📦 PACOTES</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Controle quantos pacotes você abriu e o gasto total</p>
+        <h2 style={{ fontFamily:font.title, fontSize:"1.5rem", letterSpacing:"2px" }}>📦 PACOTES</h2>
+        <p style={{ color:"var(--muted)", fontSize:".8rem", fontWeight:700, marginTop:2 }}>Controle pacotes, figurinhas avulsas e gastos</p>
       </div>
 
-      {/* big counter */}
-      <div style={{ margin:"12px",background:card,border:`1px solid ${bdr}`,borderRadius:16,padding:"24px 20px",textAlign:"center" }}>
-        <div style={{ fontSize:".7rem",color:muted,fontWeight:800,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>Pacotes Abertos</div>
-        <div style={{ fontFamily:font.title,fontSize:"5rem",lineHeight:1,background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent" }}>{packets}</div>
-        <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginTop:16 }}>
-          <button onClick={onRemove} style={{ width:52,height:52,borderRadius:"50%",border:`2px solid ${bdr}`,background:"rgba(255,255,255,0.04)",color:"#efefef",fontSize:28,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent" }}>−</button>
-          <button onClick={onAdd} style={{ width:64,height:64,borderRadius:"50%",border:"none",background:`linear-gradient(135deg,${gold},${gold2})`,color:"#000",fontSize:32,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",boxShadow:`0 0 20px rgba(255,215,0,0.3)` }}>+</button>
+      {/* ── GRAND TOTAL BANNER ── */}
+      <div style={{ margin:"0 12px 10px", background:`linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,165,0,0.05))`, border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:16, padding:"16px", display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, textAlign:"center" }}>
+        <div>
+          <div style={{ fontFamily:font.title, fontSize:"1.6rem", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1 }}>R${grandTotal.toFixed(2).replace(".",",")}</div>
+          <div style={{ fontSize:".58rem", color:"var(--muted)", fontWeight:800, textTransform:"uppercase", marginTop:3 }}>Total Gasto</div>
         </div>
-      </div>
-
-      {/* stats */}
-      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"0 12px 12px" }}>
-        <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:green,lineHeight:1 }}>R${total.toFixed(2).replace(".",",")}</div>
-          <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>Total Gasto</div>
+        <div>
+          <div style={{ fontFamily:font.title, fontSize:"1.6rem", color:green, lineHeight:1 }}>{totalFigs}</div>
+          <div style={{ fontSize:".58rem", color:"var(--muted)", fontWeight:800, textTransform:"uppercase", marginTop:3 }}>Figurinhas</div>
         </div>
-        <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:"#82b1ff",lineHeight:1 }}>R${PRICE},00</div>
-          <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>Por Pacote</div>
-        </div>
-        <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:gold,lineHeight:1 }}>{packets*7}</div>
-          <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>Figurinhas Recebidas</div>
-        </div>
-        <div style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px",textAlign:"center" }}>
-          <div style={{ fontFamily:font.title,fontSize:"1.8rem",color:"#ff80ab",lineHeight:1 }}>{packets>0?(PRICE/7).toFixed(2).replace(".",","):"0,00"}</div>
-          <div style={{ fontSize:".6rem",color:muted,fontWeight:800,textTransform:"uppercase",marginTop:4 }}>R$/Figurinha</div>
+        <div>
+          <div style={{ fontFamily:font.title, fontSize:"1.6rem", color:"#ff80ab", lineHeight:1 }}>R${costPerFig}</div>
+          <div style={{ fontSize:".58rem", color:"var(--muted)", fontWeight:800, textTransform:"uppercase", marginTop:3 }}>R$/Figurinha</div>
         </div>
       </div>
 
-      {/* reset */}
-      {!confirm?(
-        <div style={{ padding:"0 12px 12px" }}>
-          <button onClick={()=>setConfirm(true)} style={{ width:"100%",padding:12,border:`1px solid rgba(255,68,68,.3)`,borderRadius:10,background:"rgba(255,68,68,0.06)",color:"#ff6b6b",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-            Resetar contador
-          </button>
+      {/* ── PACOTES SECTION ── */}
+      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"16px 16px 12px" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <div style={{ fontFamily:font.title, fontSize:"1rem", letterSpacing:"1.5px" }}>📦 PACOTES (R${PRICE},00 cada)</div>
+          <div style={{ fontFamily:font.title, fontSize:".85rem", color:gold }}>R${pktTotal.toFixed(2).replace(".",",")} · {pktFigs} fig.</div>
         </div>
-      ):(
-        <div style={{ padding:"0 12px 12px" }}>
-          <p style={{ color:muted,fontSize:".75rem",fontWeight:700,marginBottom:8,textAlign:"center" }}>Tem certeza que quer zerar o contador?</p>
-          <div style={{ display:"flex",gap:8 }}>
-            <button onClick={()=>setConfirm(false)} style={{ flex:1,padding:12,border:`1px solid ${bdr}`,borderRadius:10,background:card,color:"#efefef",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Cancelar</button>
-            <button onClick={()=>{onReset();setConfirm(false);onToast("Contador zerado","ok");}} style={{ flex:1,padding:12,border:"none",borderRadius:10,background:"rgba(255,68,68,0.8)",color:"#fff",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Zerar</button>
+
+        {/* counter */}
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontFamily:font.title, fontSize:"4rem", lineHeight:1, background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>{packets}</div>
+          <div style={{ fontSize:".65rem", color:"var(--muted)", fontWeight:800, textTransform:"uppercase", marginTop:4, marginBottom:14 }}>Pacotes abertos</div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:16 }}>
+            <button onClick={onRemove} style={{ width:48, height:48, borderRadius:"50%", border:"2px solid var(--bdr)", background:"rgba(255,255,255,0.04)", color:"var(--text)", fontSize:26, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent" }}>−</button>
+            <button onClick={onAdd} style={{ width:58, height:58, borderRadius:"50%", border:"none", background:`linear-gradient(135deg,${gold},${gold2})`, color:"#000", fontSize:28, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent", boxShadow:`0 0 16px rgba(255,215,0,0.3)` }}>+</button>
           </div>
         </div>
-      )}
+
+        {/* reset pacotes */}
+        <div style={{ marginTop:14 }}>
+          {!confirm ? (
+            <button onClick={()=>setConfirm(true)} style={{ width:"100%", padding:"9px", border:`1px solid rgba(255,68,68,.3)`, borderRadius:9, background:"rgba(255,68,68,0.06)", color:"#ff6b6b", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
+              Resetar pacotes
+            </button>
+          ) : (
+            <>
+              <p style={{ color:"var(--muted)", fontSize:".72rem", fontWeight:700, marginBottom:7, textAlign:"center" }}>Zerar contador de pacotes?</p>
+              <div style={{ display:"flex", gap:7 }}>
+                <button onClick={()=>setConfirm(false)} style={{ flex:1, padding:9, border:"1px solid var(--bdr)", borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
+                <button onClick={()=>{onReset();setConfirm(false);onToast("Pacotes zerados","ok");}} style={{ flex:1, padding:9, border:"none", borderRadius:9, background:"rgba(255,68,68,0.8)", color:"#fff", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Zerar</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── AVULSAS SECTION ── */}
+      <div style={{ margin:"0 12px 10px", background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"16px" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <div style={{ fontFamily:font.title, fontSize:"1rem", letterSpacing:"1.5px" }}>🃏 FIGURINHAS AVULSAS</div>
+          <div style={{ fontFamily:font.title, fontSize:".85rem", color:green }}>R${avuTotal.toFixed(2).replace(".",",")} · {avuFigs} fig.</div>
+        </div>
+
+        {/* add form — two rows */}
+        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:10 }}>
+          <input
+            value={label} onChange={e=>setLabel(e.target.value)}
+            placeholder="Descrição (ex: BRA 7, Messi)"
+            onKeyDown={e=>e.key==="Enter"&&addAvulsa()}
+            style={{ ...inputSt, flex:"none" }}
+          />
+          <div style={{ display:"flex", gap:6 }}>
+            {/* qty */}
+            <div style={{ position:"relative", flex:1, display:"flex", alignItems:"center" }}>
+              <span style={{ position:"absolute", left:10, color:"var(--muted)", fontSize:".75rem", fontWeight:800, pointerEvents:"none" }}>Qtd</span>
+              <input
+                value={qty} onChange={e=>setQty(e.target.value)}
+                placeholder="1"
+                inputMode="numeric"
+                onKeyDown={e=>e.key==="Enter"&&addAvulsa()}
+                style={{ ...inputSt, paddingLeft:34, width:"100%" }}
+              />
+            </div>
+            {/* unit price */}
+            <div style={{ position:"relative", flex:1, display:"flex", alignItems:"center" }}>
+              <span style={{ position:"absolute", left:10, color:"var(--muted)", fontSize:".75rem", fontWeight:800, pointerEvents:"none" }}>R$</span>
+              <input
+                value={price} onChange={e=>setPrice(e.target.value)}
+                placeholder="0,00 unit."
+                inputMode="decimal"
+                onKeyDown={e=>e.key==="Enter"&&addAvulsa()}
+                style={{ ...inputSt, paddingLeft:28, width:"100%" }}
+              />
+            </div>
+            <button onClick={addAvulsa} style={{ flexShrink:0, width:44, height:44, border:"none", borderRadius:10, background:`linear-gradient(135deg,${green},#009640)`, color:"#fff", fontSize:22, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent" }}>+</button>
+          </div>
+        </div>
+
+        {/* list */}
+        {avulsas.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"16px 0", color:"var(--muted)", fontSize:".78rem", fontWeight:700 }}>
+            Nenhuma figurinha avulsa ainda.
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:260, overflowY:"auto", WebkitOverflowScrolling:"touch", marginBottom:10 }}>
+              {avulsas.map((item) => {
+                const q = item.qty || 1;
+                const total = item.price * q;
+                return (
+                  <div key={item.id} style={{ display:"flex", alignItems:"center", gap:8, background:"var(--card2)", border:"1px solid var(--bdr)", borderRadius:9, padding:"8px 10px" }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:".75rem", fontWeight:800, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.label}</div>
+                      <div style={{ fontSize:".62rem", color:"var(--muted)", fontWeight:700, marginTop:1 }}>
+                        {q > 1 ? `${q} × R$${item.price.toFixed(2).replace(".",",")}` : `R$${item.price.toFixed(2).replace(".",",")} unit.`}
+                      </div>
+                    </div>
+                    <span style={{ fontFamily:font.title, fontSize:".95rem", color:green, flexShrink:0 }}>R${total.toFixed(2).replace(".",",")}</span>
+                    <button onClick={()=>onRemoveAvu(item.id)} style={{ width:22, height:22, borderRadius:"50%", border:"none", background:"rgba(255,68,68,0.15)", color:"#ff6b6b", fontSize:13, fontWeight:900, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", WebkitTapHighlightColor:"transparent", flexShrink:0, padding:0 }}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* reset avulsas */}
+            {!confAvu ? (
+              <button onClick={()=>setConfAvu(true)} style={{ width:"100%", padding:"9px", border:`1px solid rgba(255,68,68,.3)`, borderRadius:9, background:"rgba(255,68,68,0.06)", color:"#ff6b6b", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}>
+                Limpar avulsas
+              </button>
+            ) : (
+              <>
+                <p style={{ color:"var(--muted)", fontSize:".72rem", fontWeight:700, marginBottom:7, textAlign:"center" }}>Remover todas as figurinhas avulsas?</p>
+                <div style={{ display:"flex", gap:7 }}>
+                  <button onClick={()=>setConfAvu(false)} style={{ flex:1, padding:9, border:"1px solid var(--bdr)", borderRadius:9, background:"var(--card)", color:"var(--text)", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Cancelar</button>
+                  <button onClick={()=>{onResetAvu();setConfAvu(false);onToast("Avulsas removidas","ok");}} style={{ flex:1, padding:9, border:"none", borderRadius:9, background:"rgba(255,68,68,0.8)", color:"#fff", fontFamily:font.body, fontSize:".75rem", fontWeight:800, cursor:"pointer" }}>Limpar</button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
       <div style={{ height:14 }} />
     </div>
   );
 }
 
 // ─── PROGRESS PAGE ────────────────────────────────────────────────────────────
-function ProgressPage({ col }) {
+function ProgressPage({ col}) {
   const groups = GROUPS.filter(g=>g.id!=="special");
   return (
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>📊 PROGRESSO POR GRUPO</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Comparativo de completude entre os grupos</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Comparativo de completude entre os grupos</p>
       </div>
       <div style={{ padding:"8px 12px 12px" }}>
         {groups.map(grp=>{
@@ -700,7 +879,7 @@ function ProgressPage({ col }) {
             <div key={grp.id} style={{ marginBottom:10 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4 }}>
                 <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:"#efefef" }}>{grp.name}</span>
+                  <span style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:full?green:"var(--text)" }}>{grp.name}</span>
                   <div style={{ display:"flex",gap:3 }}>
                     {grp.teams.map(t=>{ const {full:tf}=teamProgress(t,col); return <span key={t.id} style={{ fontSize:12 }}>{tf?"✅":t.flag}</span>; })}
                   </div>
@@ -718,12 +897,12 @@ function ProgressPage({ col }) {
 
       {/* team breakdown */}
       <div style={{ padding:"0 12px 8px" }}>
-        <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:muted,marginBottom:10 }}>DETALHE POR SELEÇÃO</div>
+        <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:"var(--muted)",marginBottom:10 }}>DETALHE POR SELEÇÃO</div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:6 }}>
           {GROUPS.flatMap(g=>g.teams).map(team=>{
             const {owned,total,pct,full}=teamProgress(team,col);
             return (
-              <div key={team.id} style={{ background:card,border:`1px solid ${full?"rgba(0,200,83,.35)":bdr}`,borderRadius:10,padding:"8px 10px" }}>
+              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":bdr}`,borderRadius:10,padding:"8px 10px" }}>
                 <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:4 }}>
                   <span style={{ fontSize:16 }}>{team.flag}</span>
                   <span style={{ fontFamily:font.title,fontSize:".75rem",letterSpacing:".8px",flex:1 }}>{team.code}</span>
@@ -743,7 +922,7 @@ function ProgressPage({ col }) {
 }
 
 // ─── WORLD MAP PAGE ───────────────────────────────────────────────────────────
-function WorldMapPage({ col }) {
+function WorldMapPage({ col}) {
   const getTeamColor = (teamId) => {
     if(!teamId) return "#1a1a2e";
     const team = ALL_TEAMS.find(t=>t.id===teamId);
@@ -802,7 +981,7 @@ function WorldMapPage({ col }) {
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🗺️ MAPA-MÚNDI</h2>
-        <p style={{ color:muted,fontSize:".8rem",fontWeight:700,marginTop:2 }}>Progresso das seleções no mundo</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Progresso das seleções no mundo</p>
       </div>
 
       {/* legend */}
@@ -810,13 +989,13 @@ function WorldMapPage({ col }) {
         {legend.map(l=>(
           <div key={l.label} style={{ display:"flex",alignItems:"center",gap:5 }}>
             <div style={{ width:12,height:12,borderRadius:3,background:l.color,border:"1px solid rgba(255,255,255,0.1)" }} />
-            <span style={{ fontSize:".65rem",color:muted,fontWeight:700 }}>{l.label}</span>
+            <span style={{ fontSize:".65rem",color:"var(--muted)",fontWeight:700 }}>{l.label}</span>
           </div>
         ))}
       </div>
 
       {/* map */}
-      <div style={{ margin:"0 12px 12px",background:"#0d1117",borderRadius:16,overflow:"hidden",border:`1px solid ${bdr}`,position:"relative" }}>
+      <div style={{ margin:"0 12px 12px",background:"#0d1117",borderRadius:16,overflow:"hidden",border:"1px solid var(--bdr)",position:"relative" }}>
         <svg viewBox="0 0 88 72" style={{ width:"100%",display:"block" }}>
           {/* ocean background */}
           <rect width="88" height="72" fill="#0d1117" />
@@ -843,12 +1022,12 @@ function WorldMapPage({ col }) {
 
       {/* country list */}
       <div style={{ padding:"0 12px 8px" }}>
-        <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:muted,marginBottom:8 }}>SELEÇÕES PARTICIPANTES</div>
+        <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:"var(--muted)",marginBottom:8 }}>SELEÇÕES PARTICIPANTES</div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5 }}>
           {ALL_TEAMS.map(team=>{
             const {pct,full,owned,total}=teamProgress(team,col);
             return (
-              <div key={team.id} style={{ background:card,border:`1px solid ${full?"rgba(0,200,83,.35)":pct>0?"rgba(255,215,0,.2)":bdr}`,borderRadius:9,padding:"7px 8px",display:"flex",alignItems:"center",gap:5 }}>
+              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":pct>0?"rgba(255,215,0,.2)":bdr}`,borderRadius:9,padding:"7px 8px",display:"flex",alignItems:"center",gap:5 }}>
                 <span style={{ fontSize:16 }}>{team.flag}</span>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontFamily:font.title,fontSize:".65rem",letterSpacing:".5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{team.code}</div>
@@ -868,7 +1047,7 @@ function WorldMapPage({ col }) {
 }
 
 // ─── REPORTS PAGE ─────────────────────────────────────────────────────────────
-function ReportsPage({ col, onToast }) {
+function ReportsPage({ col, onToast}) {
   const vals=Object.values(col);
   const have=vals.filter(v=>v>0).length;
   const dbl=vals.filter(v=>v>1).length;
@@ -894,12 +1073,12 @@ function ReportsPage({ col, onToast }) {
   return (
     <div style={{ padding:"16px 12px" }}>
       <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>📊 RELATÓRIOS</h2>
-      <p style={{ color:muted,fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte listas em .txt fáceis de compartilhar.</p>
+      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte listas em .txt fáceis de compartilhar.</p>
       <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
         {cards.map(c=>(
-          <div key={c.type} style={{ background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:"14px 12px" }}>
+          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"14px 12px" }}>
             <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:4 }}>{c.label}</h3>
-            <p style={{ color:muted,fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
+            <p style={{ color:"var(--muted)",fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
             <button onClick={()=>{dl(build(c.type),`copa2026-${c.type}.txt`);onToast("✅ Relatório exportado!","ok");}} style={{ width:"100%",padding:12,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>⬇ EXPORTAR</button>
           </div>
         ))}
@@ -910,27 +1089,27 @@ function ReportsPage({ col, onToast }) {
 }
 
 // ─── BACKUP PAGE ──────────────────────────────────────────────────────────────
-function BackupPage({ col, onImport, onToast }) {
+function BackupPage({ col, onImport, onToast}) {
   function exportBackup(){ const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),collection:col},null,2)],{type:"application/json"})),download:"album-copa-backup.json"});document.body.appendChild(a);a.click();document.body.removeChild(a);onToast("✅ Backup exportado!","ok"); }
   function importBackup(e){ const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const parsed=JSON.parse(ev.target.result);const data=parsed.collection||parsed;if(typeof data!=="object"||Array.isArray(data))throw new Error();onImport(data);onToast("✅ Backup restaurado!","ok");}catch{onToast("❌ Arquivo inválido","err");}e.target.value="";};reader.readAsText(file); }
-  const cs={background:card,border:`1px solid ${bdr}`,borderRadius:13,padding:16,marginBottom:10};
+  const cs={background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:16,marginBottom:10};
   const bs=(g1,g2,dk)=>({width:"100%",padding:13,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:`linear-gradient(135deg,${g1},${g2})`,color:dk?"#000":"#fff",WebkitTapHighlightColor:"transparent"});
   return (
     <div style={{ padding:"16px 12px" }}>
       <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px",marginBottom:4 }}>💾 BACKUP</h2>
-      <p style={{ color:muted,fontSize:".75rem",fontWeight:700,marginBottom:18,lineHeight:1.5 }}>Salve seus dados antes de atualizar o app.</p>
-      <div style={cs}><h3 style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:1,marginBottom:4 }}>📤 Exportar dados</h3><p style={{ color:muted,fontSize:".72rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>Baixa <strong style={{color:gold}}>album-copa-backup.json</strong>.</p><button onClick={exportBackup} style={bs(gold,gold2,true)}>⬇ BAIXAR BACKUP</button></div>
-      <div style={cs}><h3 style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:1,marginBottom:4 }}>📥 Importar dados</h3><p style={{ color:muted,fontSize:".72rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>Restaura a partir de um arquivo de backup.</p><label style={{display:"block"}}><div style={bs(green,"#009640",false)}>⬆ CARREGAR BACKUP</div><input type="file" accept=".json,application/json" onChange={importBackup} style={{display:"none"}} /></label></div>
-      <div style={{ background:"rgba(255,215,0,0.05)",border:`1px solid rgba(255,215,0,.12)`,borderRadius:9,padding:"11px 13px",fontSize:".71rem",color:muted,fontWeight:700,lineHeight:1.55 }}><strong style={{color:gold}}>💡 Dica:</strong> Antes de atualizar o app, exporte o backup. Depois importe para restaurar seus dados.</div>
+      <p style={{ color:"var(--muted)",fontSize:".75rem",fontWeight:700,marginBottom:18,lineHeight:1.5 }}>Salve seus dados antes de atualizar o app.</p>
+      <div style={cs}><h3 style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:1,marginBottom:4 }}>📤 Exportar dados</h3><p style={{ color:"var(--muted)",fontSize:".72rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>Baixa <strong style={{color:gold}}>album-copa-backup.json</strong>.</p><button onClick={exportBackup} style={bs(gold,gold2,true)}>⬇ BAIXAR BACKUP</button></div>
+      <div style={cs}><h3 style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:1,marginBottom:4 }}>📥 Importar dados</h3><p style={{ color:"var(--muted)",fontSize:".72rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>Restaura a partir de um arquivo de backup.</p><label style={{display:"block"}}><div style={bs(green,"#009640",false)}>⬆ CARREGAR BACKUP</div><input type="file" accept=".json,application/json" onChange={importBackup} style={{display:"none"}} /></label></div>
+      <div style={{ background:"rgba(255,215,0,0.05)",border:`1px solid rgba(255,215,0,.12)`,borderRadius:9,padding:"11px 13px",fontSize:".71rem",color:"var(--muted)",fontWeight:700,lineHeight:1.55 }}><strong style={{color:gold}}>💡 Dica:</strong> Antes de atualizar o app, exporte o backup. Depois importe para restaurar seus dados.</div>
       <div style={{ height:14 }} />
     </div>
   );
 }
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.2.0";
 
 // ─── SOBRE PAGE ───────────────────────────────────────────────────────────────
-function SobrePage() {
+function SobrePage({}) {
   const features = [
     "Álbum completo com Grupos A–L, FWC e Coca-Cola",
     "Marcação de figurinhas com controle de repetidas",
@@ -948,7 +1127,7 @@ function SobrePage() {
     <div style={{ padding:"16px 12px" }}>
 
       {/* hero */}
-      <div style={{ textAlign:"center", padding:"24px 0 20px", borderBottom:`1px solid ${bdr}`, marginBottom:20 }}>
+      <div style={{ textAlign:"center", padding:"24px 0 20px", borderBottom:"1px solid var(--bdr)", marginBottom:20 }}>
         <div style={{ fontSize:52, marginBottom:8, filter:"drop-shadow(0 0 20px rgba(255,215,0,0.5))" }}>🏆</div>
         <div style={{ fontFamily:font.title, fontSize:"1.8rem", letterSpacing:"3px", background:`linear-gradient(135deg,${gold},${gold2})`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
           ÁLBUM COPA 2026
@@ -961,12 +1140,12 @@ function SobrePage() {
       </div>
 
       {/* sobre */}
-      <div style={{ background:card, border:`1px solid ${bdr}`, borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
+      <div style={{ background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
         <h3 style={{ fontFamily:font.title, fontSize:"1.1rem", letterSpacing:"1.5px", marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
           <span>📖</span> SOBRE O APP
         </h3>
         <p style={{ fontSize:".82rem", color:"#ccc", fontWeight:700, lineHeight:1.7, marginBottom:12 }}>
-          Este aplicativo foi desenvolvido <strong style={{color:gold}}>100% pelo Claude</strong> (IA da Anthropic), como um experimento pessoal de <strong style={{color:"#efefef"}}>Marcel Inowe</strong>.
+          Este aplicativo foi desenvolvido <strong style={{color:gold}}>100% pelo Claude</strong> (IA da Anthropic), como um experimento pessoal de <strong style={{color:"var(--text)"}}>Marcel Inowe</strong>.
         </p>
         <p style={{ fontSize:".82rem", color:"#ccc", fontWeight:700, lineHeight:1.7, marginBottom:12 }}>
           O projeto nasceu da necessidade: nenhuma outra aplicação disponível atendia às necessidades de recursos e usabilidade que eu precisava para controlar meu álbum da Copa 2026.
@@ -977,7 +1156,7 @@ function SobrePage() {
       </div>
 
       {/* features */}
-      <div style={{ background:card, border:`1px solid ${bdr}`, borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
+      <div style={{ background:"var(--card)", border:"1px solid var(--bdr)", borderRadius:16, padding:"18px 16px", marginBottom:14 }}>
         <h3 style={{ fontFamily:font.title, fontSize:"1.1rem", letterSpacing:"1.5px", marginBottom:12, display:"flex", alignItems:"center", gap:8 }}>
           <span>⚡</span> RECURSOS
         </h3>
@@ -1005,13 +1184,13 @@ function SobrePage() {
         >
           ✉️ ENVIAR FEEDBACK
         </a>
-        <div style={{ textAlign:"center", marginTop:10, fontSize:".72rem", color:muted, fontWeight:700 }}>
+        <div style={{ textAlign:"center", marginTop:10, fontSize:".72rem", color:"var(--muted)", fontWeight:700 }}>
           marcel.inowe@gmail.com
         </div>
       </div>
 
       {/* rodapé */}
-      <div style={{ textAlign:"center", padding:"12px 0", color:muted, fontSize:".68rem", fontWeight:700, lineHeight:1.8 }}>
+      <div style={{ textAlign:"center", padding:"12px 0", color:"var(--muted)", fontSize:".68rem", fontWeight:700, lineHeight:1.8 }}>
         <div>Álbum Copa 2026 · v{APP_VERSION}</div>
         <div>Desenvolvido com 🤖 Claude (Anthropic)</div>
         <div>© 2026 Marcel Inowe</div>
@@ -1023,7 +1202,7 @@ function SobrePage() {
 }
 
 // ─── HAMBURGER MENU ───────────────────────────────────────────────────────────
-function HamburgerMenu({ onSelect }) {
+function HamburgerMenu({ onSelect}) {
   const [open,setOpen]=useState(false);
   const items=[
     {id:"search",  ico:"🔍", label:"Busca Rápida"},
@@ -1038,13 +1217,13 @@ function HamburgerMenu({ onSelect }) {
   return (
     <div style={{ position:"relative" }}>
       {open&&<div onClick={()=>setOpen(false)} style={{ position:"fixed",inset:0,zIndex:150 }} />}
-      <button onClick={()=>setOpen(o=>!o)} style={{ background:"none",border:`1px solid ${bdr}`,borderRadius:8,color:open?gold:muted,padding:"6px 9px",cursor:"pointer",display:"flex",flexDirection:"column",gap:4,WebkitTapHighlightColor:"transparent",zIndex:160,position:"relative" }}>
+      <button onClick={()=>setOpen(o=>!o)} style={{ background:"none",border:"1px solid var(--bdr)",borderRadius:8,color:open?gold:muted,padding:"6px 9px",cursor:"pointer",display:"flex",flexDirection:"column",gap:4,WebkitTapHighlightColor:"transparent",zIndex:160,position:"relative" }}>
         {open?<span style={{ fontSize:16,lineHeight:1,color:gold }}>✕</span>:<>{[0,1,2].map(i=><span key={i} style={{ display:"block",width:18,height:2,background:muted,borderRadius:2 }} />)}</>}
       </button>
       {open&&(
-        <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"rgba(14,14,28,0.98)",border:`1px solid ${bdr}`,borderRadius:12,overflow:"hidden",minWidth:180,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",animation:"slideDown .15s ease" }}>
+        <div style={{ position:"absolute",top:"calc(100% + 8px)",right:0,background:"rgba(14,14,28,0.98)",border:"1px solid var(--bdr)",borderRadius:12,overflow:"hidden",minWidth:180,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",animation:"slideDown .15s ease" }}>
           {items.map((item,i)=>(
-            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?`1px solid ${bdr}`:"none",color:"#efefef",fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
+            <button key={item.id} onClick={()=>{onSelect(item.id);setOpen(false);}} style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",background:"transparent",border:"none",borderBottom:i<items.length-1?"1px solid var(--bdr)":"none",color:"var(--text)",fontFamily:font.body,fontSize:".85rem",fontWeight:800,cursor:"pointer",textAlign:"left",WebkitTapHighlightColor:"transparent" }}>
               <span style={{ fontSize:18 }}>{item.ico}</span>{item.label}
             </button>
           ))}
@@ -1062,15 +1241,24 @@ const PAGE_TITLES = {
   backup:"BACKUP", sobre:"SOBRE",
 };
 
-// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [col,     setCol]     = useState(loadCol);
   const [packets, setPackets] = useState(loadPkt);
+  const [avulsas, setAvulsas] = useState(loadAvu);
   const [page,    setPage]    = useState("album");
   const [toast,   setToast]   = useState(null);
   const [confetti,setConfetti]= useState(false);
   const [banner,  setBanner]  = useState(null);
+  const [locked,  setLocked]  = useState(loadLock);
+  const [theme,   setTheme]   = useState(loadTheme);
   const ttRef = useRef(null);
+
+  function toggleLocked() {
+    setLocked(l => { const next = !l; persistLock(next); return next; });
+  }
+  function toggleTheme() {
+    setTheme(t => { const next = t==="dark"?"light":"dark"; persistTheme(next); return next; });
+  }
 
   function showToast(msg,type="ok"){
     setToast({msg,type});
@@ -1088,7 +1276,9 @@ export default function App() {
   function removePacket(){ const n=Math.max(0,packets-1); setPackets(n); persistPkt(n); }
   function resetPackets(){ setPackets(0); persistPkt(0); }
 
-  const [locked,  setLocked]  = useState(false);
+  function addAvulsa(item){ const a=[...avulsas,item]; setAvulsas(a); persistAvu(a); }
+  function removeAvulsa(id){ const a=avulsas.filter(i=>i.id!==id); setAvulsas(a); persistAvu(a); }
+  function resetAvulsas(){ setAvulsas([]); persistAvu([]); }
 
   function handleGroupComplete(grp){
     setConfetti(true);
@@ -1103,18 +1293,19 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:#07070e;}
+        :root{${themeCSS(theme)}}
+        body{background:var(--bg);}
         @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-        input::placeholder{color:#555;}
+        input::placeholder{color:var(--ph);}
         ::-webkit-scrollbar{width:0;}
       `}</style>
 
-      <div style={{ display:"flex",flexDirection:"column",height:"100dvh",background:dark,color:"#efefef",fontFamily:font.body,overflow:"hidden",backgroundImage:"radial-gradient(ellipse at 10% 0%,rgba(255,215,0,0.07) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.05) 0%,transparent 55%)" }}>
+      <div style={{ display:"flex",flexDirection:"column",height:"100dvh",background:"var(--bg)",color:"var(--text)",fontFamily:font.body,overflow:"hidden",backgroundImage:"var(--bg-img)",transition:"background .3s,color .3s" }}>
 
         {/* header */}
-        <div style={{ flexShrink:0,background:"rgba(7,7,14,0.97)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${bdr}`,padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,zIndex:100 }}>
+        <div style={{ flexShrink:0,background:"var(--hdr)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--bdr)",padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,zIndex:100,transition:"background .3s" }}>
           {page!=="album"?(
-            <button onClick={()=>setPage("album")} style={{ background:"none",border:`1px solid ${bdr}`,borderRadius:8,color:gold,fontSize:".75rem",fontWeight:800,fontFamily:font.body,padding:"5px 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>← Álbum</button>
+            <button onClick={()=>setPage("album")} style={{ background:"none",border:"1px solid var(--bdr)",borderRadius:8,color:gold,fontSize:".75rem",fontWeight:800,fontFamily:font.body,padding:"5px 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>← Álbum</button>
           ):(
             <span style={{ fontSize:24,filter:"drop-shadow(0 0 14px rgba(255,215,0,.65))" }}>🏆</span>
           )}
@@ -1122,36 +1313,43 @@ export default function App() {
             <div style={{ fontFamily:font.title,fontSize:"1.3rem",letterSpacing:"2.5px",background:`linear-gradient(135deg,${gold},${gold2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1 }}>
               {PAGE_TITLES[page]||"COPA 2026"}
             </div>
-            {page==="album"&&<div style={{ fontSize:".6rem",color:muted,fontWeight:800,letterSpacing:".5px",textTransform:"uppercase",marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>}
+            {page==="album"&&<div style={{ fontSize:".6rem",color:"var(--muted)",fontWeight:800,letterSpacing:".5px",textTransform:"uppercase",marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>}
           </div>
-          <button
-            onClick={()=>setLocked(l=>!l)}
-            title={locked?"Desbloquear edição":"Bloquear edição"}
-            style={{ background:locked?"rgba(255,68,68,0.12)":"rgba(255,215,0,0.06)", border:`1.5px solid ${locked?"rgba(255,68,68,0.5)":"rgba(255,215,0,0.2)"}`, borderRadius:8, padding:"5px 8px", cursor:"pointer", fontSize:16, lineHeight:1, WebkitTapHighlightColor:"transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" }}>
+
+          {/* theme toggle */}
+          <button onClick={toggleTheme} title={theme==="dark"?"Modo claro":"Modo escuro"}
+            style={{ background:"none",border:"1px solid var(--bdr)",borderRadius:8,padding:"5px 8px",cursor:"pointer",fontSize:16,lineHeight:1,WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center" }}>
+            {theme==="dark" ? "☀️" : "🌙"}
+          </button>
+
+          {/* lock */}
+          <button onClick={toggleLocked} title={locked?"Desbloquear edição":"Bloquear edição"}
+            style={{ background:locked?"rgba(255,68,68,0.12)":"rgba(255,215,0,0.06)",border:`1.5px solid ${locked?"rgba(255,68,68,0.5)":"rgba(255,215,0,0.2)"}`,borderRadius:8,padding:"5px 8px",cursor:"pointer",fontSize:16,lineHeight:1,WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s" }}>
             {locked ? "🔒" : "🔓"}
           </button>
+
           <HamburgerMenu onSelect={setPage} />
         </div>
 
         {/* scroll area */}
         <div style={{ flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch" }}>
-          {page==="album"   && <AlbumPage    col={col} onUpdate={update} onNavigate={setPage} onGroupComplete={handleGroupComplete} locked={locked} />}
-          {page==="doubles" && <DoublesPage  col={col} />}
-          {page==="have"    && <HavePage     col={col} />}
-          {page==="miss"    && <MissPage     col={col} />}
-          {page==="search"  && <SearchPage   col={col} />}
-          {page==="trade"   && <TradePage    col={col} onToast={showToast} />}
-          {page==="packets" && <PacketsPage  packets={packets} onAdd={addPacket} onRemove={removePacket} onReset={resetPackets} onToast={showToast} />}
-          {page==="progress"&& <ProgressPage col={col} />}
-          {page==="map"     && <WorldMapPage col={col} />}
-          {page==="reports" && <ReportsPage  col={col} onToast={showToast} />}
-          {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast} />}
-          {page==="sobre"   && <SobrePage />}
+          {page==="album"   && <AlbumPage    col={col} onUpdate={update} onNavigate={setPage} onGroupComplete={handleGroupComplete} locked={locked}  />}
+          {page==="doubles" && <DoublesPage  col={col}  />}
+          {page==="have"    && <HavePage     col={col}  />}
+          {page==="miss"    && <MissPage     col={col}  />}
+          {page==="search"  && <SearchPage   col={col}  />}
+          {page==="trade"   && <TradePage    col={col} onToast={showToast}  />}
+          {page==="packets" && <PacketsPage  packets={packets} onAdd={addPacket} onRemove={removePacket} onReset={resetPackets} avulsas={avulsas} onAddAvu={addAvulsa} onRemoveAvu={removeAvulsa} onResetAvu={resetAvulsas} onToast={showToast}  />}
+          {page==="progress"&& <ProgressPage col={col}  />}
+          {page==="map"     && <WorldMapPage col={col}  />}
+          {page==="reports" && <ReportsPage  col={col} onToast={showToast}  />}
+          {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast}  />}
+          {page==="sobre"   && <SobrePage     />}
         </div>
 
         {toast && <Toast msg={toast.msg} type={toast.type} />}
         {confetti && <Confetti onDone={()=>setConfetti(false)} />}
-        {banner && <GroupBanner grp={banner} onDone={()=>setBanner(null)} />}
+        {banner && <GroupBanner grp={banner} onDone={()=>setBanner(null)}  />}
       </div>
     </>
   );

@@ -170,8 +170,14 @@ function themeCSS(themeKey) {
 
 // Shorthand JS references (use in inline styles)
 // Bare variable aliases for complex expressions
-const bdr  = "var(--bdr)";
-const text = "var(--text)";
+const bdr     = "var(--bdr)";
+const text    = "var(--text)";
+const muted   = "var(--muted)";
+const card    = "var(--card)";
+const card2   = "var(--card2)";
+const bg      = "var(--bg)";
+const inputBg = "var(--input-bg)";
+const hdr     = "var(--hdr)";
 const C = {
   bg:      "var(--bg)",
   card:    "var(--card)",

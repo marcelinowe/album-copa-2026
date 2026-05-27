@@ -1191,8 +1191,85 @@ function ReportsPage({ col, onToast}) {
     const now = new Date().toLocaleString("pt-BR");
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#FFD700";
 
-    // Build HTML sections
-    function buildSection(title, icon, filterFn, fmtFn, chipColor, chipBg) {
+    // Special handling for "all" type — unified list with strikethrough
+    if(type==="all") {
+      let sections = "";
+      for(const grp of GROUPS) {
+        let grpHtml = "";
+        for(const team of grp.teams) {
+          const allStickers = team.stickers;
+          if(!allStickers.length) continue;
+          const chips = allStickers.map(s => {
+            const qty = col[s.id]||0;
+            const extra = qty > 1 ? ` ×${qty}` : "";
+            if(qty > 0) {
+              // have — strikethrough, muted
+              return `<span class="chip chip-have">${s.label}${extra}</span>`;
+            } else {
+              // missing — normal, red
+              return `<span class="chip chip-miss">${s.label}</span>`;
+            }
+          }).join("");
+          grpHtml += `<div class="team-row">
+            <span class="team-name">${team.flag} <strong>${team.name}</strong></span>
+            <div class="chips">${chips}</div>
+          </div>`;
+        }
+        if(grpHtml) sections += `<div class="group-block"><div class="group-label">${grp.name}</div>${grpHtml}</div>`;
+      }
+
+      const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Álbum Copa 2026 — Relatório Completo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:16px;}
+  .header{border-bottom:3px solid ${accentColor};padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header h1{font-size:20px;letter-spacing:1px;color:#111;}
+  .header .meta{font-size:9px;color:#666;text-align:right;line-height:1.6;}
+  .stats{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;}
+  .stat-val{font-size:18px;font-weight:900;color:${accentColor};}
+  .stat-lbl{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+  .progress-bar{height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-bottom:6px;}
+  .progress-fill{height:100%;background:${accentColor};border-radius:99px;}
+  .legend{display:flex;gap:16px;margin-bottom:14px;font-size:9px;color:#666;}
+  .legend span{display:flex;align-items:center;gap:4px;}
+  .group-block{margin-bottom:10px;page-break-inside:avoid;}
+  .group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;margin-top:6px;padding:3px 6px;background:#f5f5f5;border-left:3px solid ${accentColor};}
+  .team-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .team-name{font-size:10px;font-weight:700;min-width:110px;flex-shrink:0;padding-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:3px;}
+  .chip{display:inline-block;padding:2px 6px;border-radius:4px;border:1px solid;font-size:9px;font-weight:700;}
+  .chip-have{text-decoration:line-through;color:#999;border-color:#ccc;background:#f5f5f5;}
+  .chip-miss{color:#c0392b;border-color:#c0392b40;background:#fdecea;}
+  .footer{margin-top:16px;padding-top:8px;border-top:1px solid #ddd;font-size:8px;color:#aaa;text-align:center;}
+  @media print{body{padding:8px;}@page{margin:10mm;}}
+</style></head><body>
+<div class="header">
+  <h1>🏆 ÁLBUM COPA 2026 — COMPLETO</h1>
+  <div class="meta">Gerado em: ${now}<br>Total: ${have}/${TOTAL} (${pct}% completo)</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="stat-val">${have}</div><div class="stat-lbl">Tenho</div></div>
+  <div class="stat"><div class="stat-val">${miss}</div><div class="stat-lbl">Faltam</div></div>
+  <div class="stat"><div class="stat-val">${dbl}</div><div class="stat-lbl">Repetidas</div></div>
+  <div class="stat"><div class="stat-val">${pct}%</div><div class="stat-lbl">Completo</div></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+<div class="legend">
+  <span><span class="chip chip-have" style="font-size:8px">EX 1</span> Tenho (tachado)</span>
+  <span><span class="chip chip-miss" style="font-size:8px">EX 2</span> Faltando</span>
+</div>
+${sections}
+<div class="footer">Álbum Copa 2026 — Gerado pelo app pessoal de Marcel Inowe</div>
+</body></html>`;
+      const win = window.open("","_blank","width=800,height=900");
+      win.document.write(html);
+      win.document.close();
+      win.onload = () => { win.focus(); win.print(); };
+      onToast("✅ PDF aberto para impressão!","ok");
+      return;
+    }
       let html = `<div class="section"><h2>${icon} ${title}</h2>`;
       for(const grp of GROUPS) {
         let grpHtml = "";

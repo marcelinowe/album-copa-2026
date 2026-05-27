@@ -287,8 +287,8 @@ function StickerCell({ s, qty, onInc, onDec, locked}) {
   return (
     <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:stkBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
       {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:15,height:15,background:gold,color:"#000",borderRadius:"50%",fontSize:".5rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}
-      <div style={{ fontSize:20,marginBottom:1 }}>{ico}</div>
-      <div style={{ fontSize:".75rem",fontWeight:800,color:lc,textTransform:"uppercase",letterSpacing:".2px",textAlign:"center",lineHeight:1.2 }}>{s.label}</div>
+      <div style={{ fontSize:17,marginBottom:1 }}>{ico}</div>
+      <div style={{ fontSize:".65rem",fontWeight:800,color:lc,textTransform:"uppercase",letterSpacing:".2px",textAlign:"center",lineHeight:1.2 }}>{s.label}</div>
       {qty>0&&!locked&&(
         <div style={{ display:"flex",alignItems:"center",gap:1,marginTop:2 }} onClick={e=>e.stopPropagation()}>
           <button onClick={onDec} style={qb}>−</button>
@@ -334,10 +334,10 @@ function TeamCard({ team, col, isOpen, onToggle}) {
   return (
     <div onClick={onToggle} style={{ background:isOpen?"rgba(255,215,0,0.05)":card,border:`1.5px solid ${bc}`,borderRadius:13,cursor:"pointer",WebkitTapHighlightColor:"transparent",userSelect:"none",overflow:"hidden",transition:"border-color .15s" }}>
       <div style={{ padding:"10px 6px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:1 }}>
-        <span style={{ fontSize:24,lineHeight:1 }}>{team.flag}</span>
-        <span style={{ fontFamily:font.title,fontSize:".72rem",letterSpacing:1,color:"var(--muted)",marginTop:2 }}>{team.code}</span>
-        <span style={{ fontFamily:font.body,fontSize:".6rem",fontWeight:800,textAlign:"center",lineHeight:1.2 }}>{team.name}</span>
-        <span style={{ fontSize:".56rem",fontWeight:800,color:full?green:muted,marginTop:2 }}>{owned}/{total}</span>
+        <span style={{ fontSize:31,lineHeight:1 }}>{team.flag}</span>
+        <span style={{ fontFamily:font.title,fontSize:".94rem",letterSpacing:1,color:"var(--muted)",marginTop:2 }}>{team.code}</span>
+        <span style={{ fontFamily:font.body,fontSize:".78rem",fontWeight:800,textAlign:"center",lineHeight:1.2 }}>{team.name}</span>
+        <span style={{ fontSize:".73rem",fontWeight:800,color:full?green:muted,marginTop:2 }}>{owned}/{total}</span>
         <div style={{ width:"100%",height:3,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden",marginTop:4 }}>
           <div style={{ height:"100%",width:pct+"%",background:full?green:`linear-gradient(90deg,${gold},${gold2})`,borderRadius:99,transition:"width .3s" }} />
         </div>

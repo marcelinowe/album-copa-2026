@@ -1191,28 +1191,27 @@ function ReportsPage({ col, onToast}) {
     const now = new Date().toLocaleString("pt-BR");
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#FFD700";
 
-    // Special handling for "all" type — unified list with strikethrough
+    // Special handling for "all" type — unified grid layout
     if(type==="all") {
       let sections = "";
       for(const grp of GROUPS) {
         let grpHtml = "";
         for(const team of grp.teams) {
-          const allStickers = team.stickers;
-          if(!allStickers.length) continue;
-          const chips = allStickers.map(s => {
-            const qty = col[s.id]||0;
-            const extra = qty > 1 ? ` ×${qty}` : "";
+          if(!team.stickers.length) continue;
+          // First chip = team code (sigla), rest = sticker numbers only
+          const stickerChips = team.stickers.map(s => {
+            const qty   = col[s.id] || 0;
+            // Extract just the number part: "BRA 7" -> "07", "FWC 00" -> "00"
+            const num   = s.label.split(" ")[1].padStart(2,"0");
+            const extra = qty > 1 ? `<sup style="font-size:6px">×${qty}</sup>` : "";
             if(qty > 0) {
-              // have — strikethrough, muted
-              return `<span class="chip chip-have">${s.label}${extra}</span>`;
+              return `<span class="chip chip-have">${num}${extra}</span>`;
             } else {
-              // missing — normal, red
-              return `<span class="chip chip-miss">${s.label}</span>`;
+              return `<span class="chip chip-miss">${num}</span>`;
             }
           }).join("");
           grpHtml += `<div class="team-row">
-            <span class="team-name">${team.flag} <strong>${team.name}</strong></span>
-            <div class="chips">${chips}</div>
+            <span class="chip chip-code">${team.code}</span>${stickerChips}
           </div>`;
         }
         if(grpHtml) sections += `<div class="group-block"><div class="group-label">${grp.name}</div>${grpHtml}</div>`;
@@ -1222,28 +1221,55 @@ function ReportsPage({ col, onToast}) {
 <title>Álbum Copa 2026 — Relatório Completo</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:16px;}
-  .header{border-bottom:3px solid ${accentColor};padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
-  .header h1{font-size:20px;letter-spacing:1px;color:#111;}
-  .header .meta{font-size:9px;color:#666;text-align:right;line-height:1.6;}
-  .stats{display:flex;gap:10px;margin-bottom:14px;}
-  .stat{flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;}
-  .stat-val{font-size:18px;font-weight:900;color:${accentColor};}
-  .stat-lbl{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
-  .progress-bar{height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-bottom:6px;}
+  body{font-family:Arial,sans-serif;font-size:10px;color:#111;background:#fff;padding:12px;}
+  .header{border-bottom:3px solid ${accentColor};padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header h1{font-size:16px;letter-spacing:1px;color:#111;}
+  .header .meta{font-size:8px;color:#666;text-align:right;line-height:1.6;}
+  .stats{display:flex;gap:8px;margin-bottom:10px;}
+  .stat{flex:1;border:1px solid #ddd;border-radius:5px;padding:5px 6px;text-align:center;}
+  .stat-val{font-size:15px;font-weight:900;color:${accentColor};}
+  .stat-lbl{font-size:7px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+  .progress-bar{height:5px;background:#eee;border-radius:99px;overflow:hidden;margin-bottom:5px;}
   .progress-fill{height:100%;background:${accentColor};border-radius:99px;}
-  .legend{display:flex;gap:16px;margin-bottom:14px;font-size:9px;color:#666;}
-  .legend span{display:flex;align-items:center;gap:4px;}
-  .group-block{margin-bottom:10px;page-break-inside:avoid;}
-  .group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;margin-top:6px;padding:3px 6px;background:#f5f5f5;border-left:3px solid ${accentColor};}
-  .team-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;}
-  .team-name{font-size:10px;font-weight:700;min-width:110px;flex-shrink:0;padding-top:2px;}
-  .chips{display:flex;flex-wrap:wrap;gap:3px;}
-  .chip{display:inline-block;padding:2px 6px;border-radius:4px;border:1px solid;font-size:9px;font-weight:700;}
-  .chip-have{text-decoration:line-through;color:#999;border-color:#ccc;background:#f5f5f5;}
-  .chip-miss{color:#c0392b;border-color:#c0392b40;background:#fdecea;}
-  .footer{margin-top:16px;padding-top:8px;border-top:1px solid #ddd;font-size:8px;color:#aaa;text-align:center;}
-  @media print{body{padding:8px;}@page{margin:10mm;}}
+  .legend{display:flex;gap:14px;margin-bottom:10px;font-size:8px;color:#666;align-items:center;}
+  .group-block{margin-bottom:8px;page-break-inside:avoid;}
+  .group-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;
+    margin-bottom:4px;padding:2px 6px;background:#f5f5f5;border-left:3px solid ${accentColor};}
+  .team-row{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px;align-items:center;}
+  /* ALL chips same fixed size — perfectly aligned grid */
+  .chip{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:20px;
+    border-radius:3px;border:1px solid;
+    font-size:8px;font-weight:700;
+    flex-shrink:0;
+    line-height:1;
+    text-align:center;
+  }
+  /* Sigla chip — team code, same size, accent color */
+  .chip-code{
+    color:${accentColor};
+    border-color:${accentColor};
+    background:${accentColor}18;
+    font-size:7px;
+    font-weight:900;
+    letter-spacing:.3px;
+  }
+  /* Have — strikethrough, grey */
+  .chip-have{
+    text-decoration:line-through;
+    color:#aaa;
+    border-color:#ddd;
+    background:#f5f5f5;
+  }
+  /* Missing — red */
+  .chip-miss{
+    color:#c0392b;
+    border-color:#e8a0a0;
+    background:#fdecea;
+  }
+  .footer{margin-top:12px;padding-top:6px;border-top:1px solid #ddd;font-size:7px;color:#bbb;text-align:center;}
+  @media print{body{padding:6px;}@page{margin:8mm;size:A4;}}
 </style></head><body>
 <div class="header">
   <h1>🏆 ÁLBUM COPA 2026 — COMPLETO</h1>
@@ -1257,13 +1283,14 @@ function ReportsPage({ col, onToast}) {
 </div>
 <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
 <div class="legend">
-  <span><span class="chip chip-have" style="font-size:8px">EX 1</span> Tenho (tachado)</span>
-  <span><span class="chip chip-miss" style="font-size:8px">EX 2</span> Faltando</span>
+  <span class="chip chip-code" style="width:24px;height:20px;font-size:7px">BRA</span> Seleção &nbsp;
+  <span class="chip chip-have" style="width:24px;height:20px">01</span> Tenho &nbsp;
+  <span class="chip chip-miss" style="width:24px;height:20px">02</span> Faltando
 </div>
 ${sections}
-<div class="footer">Álbum Copa 2026 — Gerado pelo app pessoal de Marcel Inowe</div>
+<div class="footer">Álbum Copa 2026 — app pessoal de Marcel Inowe</div>
 </body></html>`;
-      const win = window.open("","_blank","width=800,height=900");
+      const win = window.open("","_blank","width=900,height=1000");
       win.document.write(html);
       win.document.close();
       win.onload = () => { win.focus(); win.print(); };

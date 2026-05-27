@@ -1270,6 +1270,9 @@ ${sections}
       onToast("✅ PDF aberto para impressão!","ok");
       return;
     }
+
+    // Build HTML sections for have/miss/dbl types
+    function buildSection(title, icon, filterFn, fmtFn, chipColor, chipBg) {
       let html = `<div class="section"><h2>${icon} ${title}</h2>`;
       for(const grp of GROUPS) {
         let grpHtml = "";

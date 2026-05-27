@@ -629,59 +629,108 @@ function TradePage({ col, onToast}) {
 function SearchPage({ col}) {
   const [q,setQ] = useState("");
 
-  const result = q.trim().length>=2 ? (() => {
-    const ql=q.trim().toLowerCase();
-    const found=[];
-    for(const grp of GROUPS)
-      for(const team of grp.teams)
-        for(const s of team.stickers)
-          if(s.label.toLowerCase().includes(ql)||team.name.toLowerCase().includes(ql)||team.code.toLowerCase().includes(ql))
-            found.push({s,team,grp,qty:col[s.id]||0});
-    return found;
+  // Group results by team
+  const grouped = q.trim().length >= 1 ? (() => {
+    const ql = q.trim().toLowerCase();
+    const map = []; // [{grp, team, stickers:[{s,qty}]}]
+    for(const grp of GROUPS) {
+      for(const team of grp.teams) {
+        const matchTeam = team.name.toLowerCase().includes(ql) || team.code.toLowerCase().includes(ql) || grp.name.toLowerCase().includes(ql);
+        const stickers = team.stickers.filter(s =>
+          matchTeam || s.label.toLowerCase().includes(ql)
+        ).map(s => ({ s, qty: col[s.id]||0 }));
+        if(stickers.length) map.push({ grp, team, stickers });
+      }
+    }
+    return map;
   })() : [];
 
-  const statusIcon = (qty) => qty===0?"❌ Faltando":qty===1?"✅ Tenho":"⭐ Repetida";
-  const statusColor = (qty) => qty===0?"#ff6b6b":qty===1?green:gold;
+  const totalFound = grouped.reduce((a,g) => a + g.stickers.length, 0);
 
   return (
     <div>
       <div style={{ padding:"16px 12px 10px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔍 BUSCA RÁPIDA</h2>
-        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Digite o código ou nome para verificar status</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Digite o código, nome ou grupo — veja tudo de uma vez</p>
       </div>
-      <div style={{ padding:"0 12px 12px" }}>
+
+      <div style={{ padding:"0 12px 10px" }}>
         <ClearableInput
-          value={q}
-          onChange={setQ}
-          placeholder="Ex: BRA 7, ARG 15, Brasil..."
+          value={q} onChange={setQ}
+          placeholder="Ex: BRA, Brasil, Grupo C..."
           autoFocus
-          
-          style={{ padding:"12px 16px", background:"var(--card)", border:`1.5px solid rgba(255,215,0,0.3)`, borderRadius:12, color:"var(--text)", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
+          style={{ padding:"12px 16px", background:"var(--card)", border:"1.5px solid rgba(255,215,0,0.3)", borderRadius:12, color:"var(--text)", fontFamily:font.body, fontSize:"1rem", outline:"none", WebkitAppearance:"none" }}
         />
       </div>
-      {q.trim().length>0&&q.trim().length<2&&(
-        <div style={{ textAlign:"center",padding:"20px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>Digite ao menos 2 caracteres...</div>
-      )}
-      {result.length>0&&(
-        <div style={{ padding:"0 12px" }}>
-          <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:800,marginBottom:8 }}>{result.length} resultado{result.length!==1?"s":""}</div>
-          {result.map(({s,team,grp,qty})=>(
-            <div key={s.id} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10 }}>
-              <span style={{ fontSize:24 }}>{team.flag}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px" }}>{s.label}</div>
-                <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:700,marginTop:1 }}>{team.name} · {grp.name}</div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:".72rem",fontWeight:800,color:statusColor(qty) }}>{statusIcon(qty)}</div>
-                {qty>1&&<div style={{ fontSize:".65rem",color:gold,fontWeight:800,marginTop:2 }}>{qty-1} extra{qty-1>1?"s":""}</div>}
-              </div>
-            </div>
-          ))}
+
+      {/* legend */}
+      {q.trim().length >= 1 && grouped.length > 0 && (
+        <div style={{ display:"flex", gap:12, padding:"0 12px 10px", alignItems:"center" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:12,height:12,borderRadius:3,background:"rgba(0,200,83,0.15)",border:"1.5px solid rgba(0,200,83,0.4)" }} />
+            <span style={{ fontSize:".68rem",color:"var(--muted)",fontWeight:700 }}>Tenho</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:12,height:12,borderRadius:3,background:"rgba(255,68,68,0.12)",border:"1.5px solid rgba(255,68,68,0.35)" }} />
+            <span style={{ fontSize:".68rem",color:"var(--muted)",fontWeight:700 }}>Faltando</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:12,height:12,borderRadius:3,background:"rgba(255,215,0,0.15)",border:"1.5px solid rgba(255,215,0,0.4)" }} />
+            <span style={{ fontSize:".68rem",color:"var(--muted)",fontWeight:700 }}>Repetida</span>
+          </div>
+          <span style={{ marginLeft:"auto", fontSize:".68rem",color:"var(--muted)",fontWeight:800 }}>{totalFound} figurinha{totalFound!==1?"s":""}</span>
         </div>
       )}
-      {result.length===0&&q.trim().length>=2&&(
-        <div style={{ textAlign:"center",padding:"30px 20px",color:"var(--muted)" }}><div style={{ fontSize:36,marginBottom:8 }}>🤷</div><p style={{ fontSize:".85rem",fontWeight:700 }}>Nenhuma figurinha encontrada.</p></div>
+
+      {/* results grouped by team */}
+      {grouped.map(({ grp, team, stickers }) => (
+        <div key={team.id} style={{ marginBottom:12 }}>
+          {/* team header */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 12px 6px", background:"var(--card)", borderTop:"1px solid var(--bdr)", borderBottom:"1px solid var(--bdr)", marginBottom:8 }}>
+            <span style={{ fontSize:20 }}>{team.flag}</span>
+            <div>
+              <span style={{ fontFamily:font.title, fontSize:".95rem", letterSpacing:"1px" }}>{team.name}</span>
+              <span style={{ fontFamily:font.body, fontSize:".65rem", color:"var(--muted)", fontWeight:700, marginLeft:6 }}>{grp.name}</span>
+            </div>
+            {/* mini summary */}
+            <div style={{ marginLeft:"auto", display:"flex", gap:6, fontSize:".65rem", fontWeight:800 }}>
+              <span style={{ color:green }}>{stickers.filter(x=>x.qty===1).length}✅</span>
+              <span style={{ color:gold }}>{stickers.filter(x=>x.qty>1).length}⭐</span>
+              <span style={{ color:"#ff6b6b" }}>{stickers.filter(x=>x.qty===0).length}❌</span>
+            </div>
+          </div>
+
+          {/* chips side by side */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:5, padding:"0 12px" }}>
+            {stickers.map(({ s, qty }) => {
+              const hasDbl  = qty > 1;
+              const hasOne  = qty === 1;
+              const missing = qty === 0;
+              const bg      = hasDbl  ? "rgba(255,215,0,0.14)"  : hasOne ? "rgba(0,200,83,0.13)"  : "rgba(255,68,68,0.1)";
+              const border  = hasDbl  ? "rgba(255,215,0,0.45)"  : hasOne ? "rgba(0,200,83,0.4)"   : "rgba(255,68,68,0.35)";
+              const color   = hasDbl  ? gold                     : hasOne ? "#69ff94"               : "#ff6b6b";
+              return (
+                <div key={s.id} style={{ background:bg, border:`1.5px solid ${border}`, borderRadius:7, padding:"4px 9px", fontSize:".72rem", fontWeight:800, color, display:"flex", alignItems:"center", gap:4 }}>
+                  {s.label}
+                  {hasDbl && <span style={{ background:gold, color:"#000", borderRadius:20, padding:"1px 5px", fontSize:".58rem" }}>×{qty}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {q.trim().length === 0 && (
+        <div style={{ textAlign:"center", padding:"40px 20px", color:"var(--muted)" }}>
+          <div style={{ fontSize:40, marginBottom:10 }}>🔍</div>
+          <p style={{ fontSize:".85rem", fontWeight:700, lineHeight:1.6 }}>Digite o nome ou código de uma seleção<br/>para ver todas as figurinhas de uma vez.</p>
+        </div>
+      )}
+      {q.trim().length >= 1 && grouped.length === 0 && (
+        <div style={{ textAlign:"center", padding:"30px 20px", color:"var(--muted)" }}>
+          <div style={{ fontSize:36, marginBottom:8 }}>🤷</div>
+          <p style={{ fontSize:".85rem", fontWeight:700 }}>Nenhuma figurinha encontrada.</p>
+        </div>
       )}
       <div style={{ height:14 }} />
     </div>

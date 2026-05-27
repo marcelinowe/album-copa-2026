@@ -110,10 +110,11 @@ const TOTAL     = ALL_TEAMS.reduce((a,t) => a + t.stickers.length, 0);
 const KEY       = "copa2026_col";
 const PKT_KEY   = "copa2026_pkt";
 const AVU_KEY   = "copa2026_avu";
-const LOCK_KEY  = "copa2026_lock";
-const CELE_KEY  = "copa2026_celebrated";
-const THEME_KEY = "copa2026_theme";
-const PRICE     = 7;
+const LOCK_KEY   = "copa2026_lock";
+const CELE_KEY   = "copa2026_celebrated";
+const THEME_KEY  = "copa2026_theme";
+const ACCENT_KEY = "copa2026_accent";
+const PRICE      = 7;
 
 function loadCol() { try { return JSON.parse(localStorage.getItem(KEY)||"{}"); } catch { return {}; } }
 function persistCol(c) { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch {} }
@@ -125,54 +126,116 @@ function loadLock() { return localStorage.getItem(LOCK_KEY) === "1"; }
 function persistLock(v) { localStorage.setItem(LOCK_KEY, v ? "1" : "0"); }
 function loadCelebrated() { try { return new Set(JSON.parse(localStorage.getItem(CELE_KEY)||"[]")); } catch { return new Set(); } }
 function persistCelebrated(s) { localStorage.setItem(CELE_KEY, JSON.stringify([...s])); }
-function loadTheme() { return localStorage.getItem(THEME_KEY) || "dark"; }
-function persistTheme(v) { localStorage.setItem(THEME_KEY, v); }
+function loadTheme()  { return localStorage.getItem(THEME_KEY)  || "dark"; }
+function persistTheme(v)  { localStorage.setItem(THEME_KEY, v); }
+function loadAccent() { return localStorage.getItem(ACCENT_KEY) || "gold"; }
+function persistAccent(v) { localStorage.setItem(ACCENT_KEY, v); }
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
-const gold  = "#FFD700";
-const gold2 = "#FFA500";
 const green = "#00c853";
 const red   = "#ff4444";
 const font  = { title:"'Bebas Neue', sans-serif", body:"'Nunito', sans-serif" };
 
-// All colors go through CSS variables — no T prop needed in components
-// Components just use var(--card), var(--bdr), etc.
+// ── ACCENT PALETTES ──────────────────────────────────────────────────────────
+const ACCENTS = [
+  { id:"gold",   label:"Dourado",  color:"#FFD700", color2:"#FFA500" },
+  { id:"blue",   label:"Azul",     color:"#448aff", color2:"#1565c0" },
+  { id:"green",  label:"Verde",    color:"#00c853", color2:"#009640" },
+  { id:"purple", label:"Roxo",     color:"#ce93d8", color2:"#9c27b0" },
+  { id:"red",    label:"Vermelho", color:"#ff5252", color2:"#c62828" },
+  { id:"cyan",   label:"Ciano",    color:"#18ffff", color2:"#00b8d4" },
+  { id:"orange", label:"Laranja",  color:"#ff6d00", color2:"#e65100" },
+  { id:"pink",   label:"Rosa",     color:"#f48fb1", color2:"#c2185b" },
+];
+
+// ── BASE THEMES (backgrounds only — accent applied separately) ───────────────
 const THEMES = {
   dark: {
-    "--bg":      "#07070e",
-    "--card":    "#14142a",
-    "--card2":   "#1a1a35",
-    "--bdr":     "rgba(255,215,0,0.13)",
-    "--bdr-rgb": "255,215,0,0.13",
-    "--text":    "#efefef",
-    "--muted":   "#666",
-    "--hdr":     "rgba(7,7,14,0.97)",
-    "--input-bg":"#14142a",
-    "--ph":      "#555",
-    "--bg-img":  "radial-gradient(ellipse at 10% 0%,rgba(255,215,0,0.07) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.05) 0%,transparent 55%)",
+    name:"🌑 Escuro", isDark:true,
+    "--bg":"#07070e","--card":"#14142a","--card2":"#1a1a35",
+    "--text":"#efefef","--muted":"#666","--hdr":"rgba(7,7,14,0.97)",
+    "--input-bg":"#14142a","--ph":"#555",
   },
   light: {
-    "--bg":      "#f0f2f5",
-    "--card":    "#ffffff",
-    "--card2":   "#f0f2f5",
-    "--bdr":     "rgba(160,120,0,0.2)",
-    "--bdr-rgb": "160,120,0,0.2",
-    "--text":    "#111111",
-    "--muted":   "#999",
-    "--hdr":     "rgba(240,242,245,0.97)",
-    "--input-bg":"#e8eaed",
-    "--ph":      "#aaa",
-    "--bg-img":  "radial-gradient(ellipse at 10% 0%,rgba(255,200,0,0.06) 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,rgba(68,138,255,0.04) 0%,transparent 55%)",
+    name:"☀️ Claro", isDark:false,
+    "--bg":"#f0f2f5","--card":"#ffffff","--card2":"#e8eaed",
+    "--text":"#111111","--muted":"#888","--hdr":"rgba(240,242,245,0.97)",
+    "--input-bg":"#e8eaed","--ph":"#aaa",
+  },
+  amoled: {
+    name:"⚫ AMOLED", isDark:true,
+    "--bg":"#000000","--card":"#0d0d0d","--card2":"#141414",
+    "--text":"#efefef","--muted":"#555","--hdr":"rgba(0,0,0,0.98)",
+    "--input-bg":"#0d0d0d","--ph":"#444",
+  },
+  ocean: {
+    name:"🌊 Oceano", isDark:true,
+    "--bg":"#020c18","--card":"#0a1f35","--card2":"#0d2845",
+    "--text":"#e0f0ff","--muted":"#5588aa","--hdr":"rgba(2,12,24,0.97)",
+    "--input-bg":"#0a1f35","--ph":"#446688",
+  },
+  forest: {
+    name:"🌲 Floresta", isDark:true,
+    "--bg":"#021008","--card":"#0a2010","--card2":"#0d2a14",
+    "--text":"#e0ffe8","--muted":"#4a8a5a","--hdr":"rgba(2,16,8,0.97)",
+    "--input-bg":"#0a2010","--ph":"#336644",
+  },
+  sunset: {
+    name:"🌅 Pôr do Sol", isDark:true,
+    "--bg":"#120818","--card":"#1e0a28","--card2":"#280e35",
+    "--text":"#ffe8d0","--muted":"#8a5a6a","--hdr":"rgba(18,8,24,0.97)",
+    "--input-bg":"#1e0a28","--ph":"#664455",
+  },
+  grape: {
+    name:"🍇 Uva", isDark:true,
+    "--bg":"#0e0518","--card":"#1a0a28","--card2":"#220d35",
+    "--text":"#f0e0ff","--muted":"#7755aa","--hdr":"rgba(14,5,24,0.97)",
+    "--input-bg":"#1a0a28","--ph":"#5533aa",
+  },
+  brasil: {
+    name:"🇧🇷 Brasil", isDark:true,
+    "--bg":"#011a06","--card":"#042210","--card2":"#052d14",
+    "--text":"#fefde8","--muted":"#6a8840","--hdr":"rgba(1,26,6,0.97)",
+    "--input-bg":"#042210","--ph":"#4a6630",
   },
 };
 
-function themeCSS(themeKey) {
-  const vars = THEMES[themeKey] || THEMES.dark;
-  return Object.entries(vars).map(([k,v]) => `${k}:${v};`).join("");
+function themeCSS(themeKey, accentId) {
+  const t = THEMES[themeKey] || THEMES.dark;
+  const a = ACCENTS.find(x=>x.id===accentId) || ACCENTS[0];
+  const isDark = t.isDark !== false;
+
+  // border uses accent color at low opacity
+  const bdrAlpha = isDark ? "0.18" : "0.25";
+  const bdrVal   = `${hexToRgb(a.color)},${bdrAlpha}`;
+
+  const bgImg = isDark
+    ? `radial-gradient(ellipse at 10% 0%,${hexToRgba(a.color, 0.07)} 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,${hexToRgba(a.color2, 0.05)} 0%,transparent 55%)`
+    : `radial-gradient(ellipse at 10% 0%,${hexToRgba(a.color, 0.05)} 0%,transparent 50%),radial-gradient(ellipse at 90% 100%,${hexToRgba(a.color2, 0.04)} 0%,transparent 55%)`;
+
+  const vars = {
+    ...t,
+    "--accent":   a.color,
+    "--accent2":  a.color2,
+    "--bdr":      `rgba(${bdrVal})`,
+    "--bg-img":   bgImg,
+  };
+  // remove non-CSS keys
+  const { name, isDark: _d, ...cssVars } = vars;
+  return Object.entries(cssVars).map(([k,v]) => `${k}:${v};`).join("");
 }
 
-// Shorthand JS references (use in inline styles)
-// Bare variable aliases for complex expressions
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+function hexToRgba(hex, alpha) {
+  return `rgba(${hexToRgb(hex)},${alpha})`;
+}
+
+// Bare variable aliases
 const bdr     = "var(--bdr)";
 const text    = "var(--text)";
 const muted   = "var(--muted)";
@@ -182,17 +245,14 @@ const bg      = "var(--bg)";
 const inputBg = "var(--input-bg)";
 const hdr     = "var(--hdr)";
 const C = {
-  bg:      "var(--bg)",
-  card:    "var(--card)",
-  card2:   "var(--card2)",
-  bdr:     "var(--bdr)",
-  text:    "var(--text)",
-  muted:   "var(--muted)",
-  hdr:     "var(--hdr)",
-  inputBg: "var(--input-bg)",
+  bg:"var(--bg)", card:"var(--card)", card2:"var(--card2)",
+  bdr:"var(--bdr)", text:"var(--text)", muted:"var(--muted)",
+  hdr:"var(--hdr)", inputBg:"var(--input-bg)",
 };
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// accent aliases — always use var(--accent) so theme switching works live
+const gold  = "var(--accent)";
+const gold2 = "var(--accent2)";
 function teamProgress(team, col) {
   const owned = team.stickers.filter(s=>(col[s.id]||0)>0).length;
   return { owned, total:team.stickers.length, pct:Math.round((owned/team.stickers.length)*100), full:owned===team.stickers.length };
@@ -1109,6 +1169,7 @@ function ReportsPage({ col, onToast}) {
   const miss=TOTAL-have;
   const pct=Math.round((have/TOTAL)*100);
 
+  // ── TXT export ──────────────────────────────────────────────────────────────
   function dl(content,filename){ const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([content],{type:"text/plain;charset=utf-8"})),download:filename});document.body.appendChild(a);a.click();document.body.removeChild(a); }
   function build(type){
     const now=new Date().toLocaleString("pt-BR");
@@ -1124,17 +1185,128 @@ function ReportsPage({ col, onToast}) {
     lines.push("═══════════════════════════════════════");
     return lines.join("\n");
   }
-  const cards=[{label:"✅ Conseguidas",desc:"Todas que você já tem.",type:"have",g:["#00c853","#009640"],dark:false},{label:"❌ Faltando",desc:"Tudo que falta para completar.",type:"miss",g:["#448aff","#1565c0"],dark:false},{label:"⭐ Repetidas",desc:"Suas repetidas com quantidade extra.",type:"dbl",g:[gold,gold2],dark:true},{label:"📋 Completo",desc:"Conseguidas, faltando e repetidas.",type:"all",g:["#ff6f00","#e65100"],dark:false}];
+
+  // ── PDF print ────────────────────────────────────────────────────────────────
+  function printPDF(type) {
+    const now = new Date().toLocaleString("pt-BR");
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#FFD700";
+
+    // Build HTML sections
+    function buildSection(title, icon, filterFn, fmtFn, chipColor, chipBg) {
+      let html = `<div class="section"><h2>${icon} ${title}</h2>`;
+      for(const grp of GROUPS) {
+        let grpHtml = "";
+        for(const team of grp.teams) {
+          const items = team.stickers.filter(filterFn(team));
+          if(!items.length) continue;
+          grpHtml += `<div class="team-row">
+            <span class="team-name">${team.flag} <strong>${team.name}</strong></span>
+            <div class="chips">${items.map(s=>`<span class="chip" style="color:${chipColor};background:${chipBg};border-color:${chipColor}40">${fmtFn(s)}</span>`).join("")}</div>
+          </div>`;
+        }
+        if(grpHtml) html += `<div class="group-block"><div class="group-label">${grp.name}</div>${grpHtml}</div>`;
+      }
+      return html + "</div>";
+    }
+
+    let sections = "";
+    if(type==="have"||type==="all") sections += buildSection(`Figurinhas Conseguidas (${have})`, "✅", ()=>s=>(col[s.id]||0)>0, s=>s.label, "#007a30", "#e6f9ee");
+    if(type==="miss"||type==="all") sections += buildSection(`Figurinhas Faltando (${miss})`,    "❌", ()=>s=>(col[s.id]||0)===0, s=>s.label, "#c0392b", "#fdecea");
+    if(type==="dbl" ||type==="all") sections += buildSection(`Figurinhas Repetidas (${dbl})`,   "⭐", ()=>s=>(col[s.id]||0)>1,  s=>`${s.label} ×${col[s.id]-1}`, "#7d5a00", "#fff8e1");
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Álbum Copa 2026 — Relatório</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:16px;}
+  .header{border-bottom:3px solid ${accentColor};padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header h1{font-size:20px;letter-spacing:1px;color:#111;}
+  .header .meta{font-size:9px;color:#666;text-align:right;line-height:1.6;}
+  .stats{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;}
+  .stat-val{font-size:18px;font-weight:900;color:${accentColor};}
+  .stat-lbl{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+  .progress-bar{height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-bottom:14px;}
+  .progress-fill{height:100%;background:${accentColor};border-radius:99px;}
+  .section{margin-bottom:18px;page-break-inside:avoid;}
+  .section h2{font-size:13px;margin-bottom:8px;padding:5px 8px;background:#f5f5f5;border-left:3px solid ${accentColor};border-radius:0 4px 4px 0;}
+  .group-block{margin-bottom:8px;}
+  .group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;margin-top:6px;}
+  .team-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;}
+  .team-name{font-size:10px;font-weight:700;min-width:110px;flex-shrink:0;padding-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:3px;}
+  .chip{display:inline-block;padding:2px 6px;border-radius:4px;border:1px solid;font-size:9px;font-weight:700;}
+  .footer{margin-top:16px;padding-top:8px;border-top:1px solid #ddd;font-size:8px;color:#aaa;text-align:center;}
+  @media print{body{padding:8px;}@page{margin:10mm;}}
+</style></head><body>
+<div class="header">
+  <h1>🏆 ÁLBUM COPA 2026</h1>
+  <div class="meta">Gerado em: ${now}<br>Total: ${have}/${TOTAL} (${pct}% completo)</div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="stat-val">${have}</div><div class="stat-lbl">Tenho</div></div>
+  <div class="stat"><div class="stat-val">${miss}</div><div class="stat-lbl">Faltam</div></div>
+  <div class="stat"><div class="stat-val">${dbl}</div><div class="stat-lbl">Repetidas</div></div>
+  <div class="stat"><div class="stat-val">${pct}%</div><div class="stat-lbl">Completo</div></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+${sections}
+<div class="footer">Álbum Copa 2026 — Gerado pelo app pessoal de Marcel Inowe</div>
+</body></html>`;
+
+    // Open in new window and trigger print
+    const win = window.open("", "_blank", "width=800,height=900");
+    win.document.write(html);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+    onToast("✅ PDF aberto para impressão!", "ok");
+  }
+
+  // ── RENDER ───────────────────────────────────────────────────────────────────
+  const txtCards=[
+    {label:"✅ Conseguidas (.txt)", desc:"Lista de texto para compartilhar.", type:"have", g:["#00c853","#009640"], dark:false},
+    {label:"❌ Faltando (.txt)",    desc:"Tudo que falta, em texto.",          type:"miss", g:["#448aff","#1565c0"], dark:false},
+    {label:"⭐ Repetidas (.txt)",   desc:"Suas repetidas com extras.",          type:"dbl",  g:["var(--accent)","var(--accent2)"], dark:true},
+    {label:"📋 Completo (.txt)",    desc:"Tudo em um único arquivo.",           type:"all",  g:["#ff6f00","#e65100"], dark:false},
+  ];
+  const pdfCards=[
+    {label:"🖨️ PDF — Tenho",       desc:"Figurinhas conseguidas. Ideal para mostrar nas trocas.", type:"have", g:["#00c853","#009640"], dark:false},
+    {label:"🖨️ PDF — Faltam",      desc:"O que você ainda precisa conseguir.",                    type:"miss", g:["#448aff","#1565c0"], dark:false},
+    {label:"🖨️ PDF — Completo",    desc:"Tenho + Faltam + Repetidas em um PDF só.",               type:"all",  g:["#ff6f00","#e65100"], dark:false},
+  ];
+
   return (
     <div style={{ padding:"16px 12px" }}>
       <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>📊 RELATÓRIOS</h2>
-      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte listas em .txt fáceis de compartilhar.</p>
-      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-        {cards.map(c=>(
-          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"14px 12px" }}>
-            <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:4 }}>{c.label}</h3>
+      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte em .txt para compartilhar ou gere um PDF para imprimir.</p>
+
+      {/* PDF section */}
+      <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>📄 IMPRIMIR / SALVAR PDF</div>
+      <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
+        {pdfCards.map(c=>(
+          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"12px" }}>
+            <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:3 }}>{c.label}</h3>
             <p style={{ color:"var(--muted)",fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
-            <button onClick={()=>{dl(build(c.type),`copa2026-${c.type}.txt`);onToast("✅ Relatório exportado!","ok");}} style={{ width:"100%",padding:12,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>⬇ EXPORTAR</button>
+            <button onClick={()=>printPDF(c.type)} style={{ width:"100%",padding:11,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>
+              🖨️ GERAR PDF
+            </button>
+          </div>
+        ))}
+        <div style={{ background:"rgba(255,215,0,0.05)",border:"1px solid rgba(255,215,0,0.15)",borderRadius:10,padding:"10px 12px",fontSize:".7rem",color:"var(--muted)",fontWeight:700,lineHeight:1.55 }}>
+          💡 O PDF abre em uma nova aba. Use <strong style={{color:"var(--text)"}}>Ctrl+P</strong> (desktop) ou <strong style={{color:"var(--text)"}}>Compartilhar → Imprimir</strong> (iPhone) para salvar ou imprimir.
+        </div>
+      </div>
+
+      {/* TXT section */}
+      <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>📝 EXPORTAR TEXTO (.TXT)</div>
+      <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+        {txtCards.map(c=>(
+          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"12px" }}>
+            <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:3 }}>{c.label}</h3>
+            <p style={{ color:"var(--muted)",fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
+            <button onClick={()=>{dl(build(c.type),`copa2026-${c.type}.txt`);onToast("✅ Relatório exportado!","ok");}} style={{ width:"100%",padding:11,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>
+              ⬇ EXPORTAR .TXT
+            </button>
           </div>
         ))}
       </div>
@@ -1161,7 +1333,7 @@ function BackupPage({ col, onImport, onToast}) {
   );
 }
 
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 
 // ─── SOBRE PAGE ───────────────────────────────────────────────────────────────
 function SobrePage({}) {
@@ -1256,18 +1428,87 @@ function SobrePage({}) {
   );
 }
 
+// ─── THEME PAGE ───────────────────────────────────────────────────────────────
+function ThemePage({ theme, accent, onTheme, onAccent }) {
+  return (
+    <div style={{ padding:"16px 12px" }}>
+      <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px",marginBottom:4 }}>🎨 APARÊNCIA</h2>
+      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginBottom:20,lineHeight:1.5 }}>
+        Escolha o tema de fundo e a cor de destaque do app.
+      </p>
+
+      {/* ── BASE THEMES ── */}
+      <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>TEMA DE FUNDO</div>
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:24 }}>
+        {Object.entries(THEMES).map(([key,t])=>{
+          const active = theme === key;
+          return (
+            <button key={key} onClick={()=>onTheme(key)}
+              style={{ background:t["--card"],border:`2px solid ${active?"var(--accent)":"var(--bdr)"}`,borderRadius:12,padding:"12px 10px",cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",gap:10,transition:"border-color .2s",textAlign:"left" }}>
+              {/* mini preview */}
+              <div style={{ width:32,height:32,borderRadius:8,background:t["--bg"],border:`1px solid ${t["--card2"]}`,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>
+                {active ? "✓" : ""}
+              </div>
+              <div>
+                <div style={{ fontFamily:font.body,fontSize:".78rem",fontWeight:800,color:t["--text"] }}>{t.name}</div>
+                <div style={{ display:"flex",gap:3,marginTop:4 }}>
+                  <div style={{ width:10,height:10,borderRadius:"50%",background:t["--bg"] }} />
+                  <div style={{ width:10,height:10,borderRadius:"50%",background:t["--card"] }} />
+                  <div style={{ width:10,height:10,borderRadius:"50%",background:t["--text"] }} />
+                </div>
+              </div>
+              {active && <div style={{ marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:"var(--accent)",flexShrink:0 }} />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── ACCENT COLORS ── */}
+      <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>COR DE DESTAQUE</div>
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16 }}>
+        {ACCENTS.map(a=>{
+          const active = accent === a.id;
+          return (
+            <button key={a.id} onClick={()=>onAccent(a.id)}
+              style={{ border:`2px solid ${active?a.color:"var(--bdr)"}`,borderRadius:12,padding:"12px 6px",cursor:"pointer",WebkitTapHighlightColor:"transparent",background:active?`${a.color}18`:"var(--card)",display:"flex",flexDirection:"column",alignItems:"center",gap:6,transition:"all .2s" }}>
+              <div style={{ width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${a.color},${a.color2})`,boxShadow:active?`0 0 12px ${a.color}60`:""}} />
+              <span style={{ fontFamily:font.body,fontSize:".6rem",fontWeight:800,color:active?a.color:"var(--muted)" }}>{a.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* preview strip */}
+      <div style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:12,padding:"14px",marginTop:8 }}>
+        <div style={{ fontSize:".7rem",color:"var(--muted)",fontWeight:800,marginBottom:10,textTransform:"uppercase",letterSpacing:1 }}>Prévia</div>
+        <div style={{ display:"flex",gap:8,marginBottom:8 }}>
+          <div style={{ flex:1,padding:"8px",background:`linear-gradient(135deg,var(--accent),var(--accent2))`,borderRadius:8,textAlign:"center",fontFamily:font.title,fontSize:".9rem",letterSpacing:1,color:"#000" }}>BOTÃO</div>
+          <div style={{ flex:1,padding:"8px",border:"1.5px solid var(--accent)",borderRadius:8,textAlign:"center",fontFamily:font.body,fontSize:".78rem",fontWeight:800,color:"var(--accent)" }}>BORDA</div>
+        </div>
+        <div style={{ height:6,background:"var(--card2)",borderRadius:99,overflow:"hidden" }}>
+          <div style={{ height:"100%",width:"65%",background:`linear-gradient(90deg,var(--accent),var(--accent2))`,borderRadius:99 }} />
+        </div>
+        <div style={{ fontSize:".65rem",color:"var(--muted)",fontWeight:700,marginTop:6 }}>Barra de progresso — 65%</div>
+      </div>
+
+      <div style={{ height:14 }} />
+    </div>
+  );
+}
+
 // ─── HAMBURGER MENU ───────────────────────────────────────────────────────────
 function HamburgerMenu({ onSelect}) {
   const [open,setOpen]=useState(false);
   const items=[
-    {id:"search",  ico:"🔍", label:"Busca Rápida"},
-    {id:"trade",   ico:"🔄", label:"Modo Troca"},
-    {id:"packets", ico:"📦", label:"Pacotes"},
-    {id:"progress",ico:"📊", label:"Progresso"},
-    {id:"map",     ico:"🗺️", label:"Mapa-Múndi"},
-    {id:"reports", ico:"📋", label:"Relatórios"},
-    {id:"backup",  ico:"💾", label:"Backup"},
-    {id:"sobre",   ico:"ℹ️", label:"Sobre"},
+    {id:"search",   ico:"🔍", label:"Busca Rápida"},
+    {id:"trade",    ico:"🔄", label:"Modo Troca"},
+    {id:"packets",  ico:"📦", label:"Pacotes"},
+    {id:"progress", ico:"📊", label:"Progresso"},
+    {id:"map",      ico:"🗺️", label:"Mapa-Múndi"},
+    {id:"reports",  ico:"📋", label:"Relatórios"},
+    {id:"backup",   ico:"💾", label:"Backup"},
+    {id:"theme",    ico:"🎨", label:"Aparência"},
+    {id:"sobre",    ico:"ℹ️", label:"Sobre"},
   ];
   return (
     <div style={{ position:"relative" }}>
@@ -1293,7 +1534,7 @@ const PAGE_TITLES = {
   album:"COPA 2026", doubles:"REPETIDAS", have:"TENHO", miss:"FALTAM",
   search:"BUSCA RÁPIDA", trade:"MODO TROCA", packets:"PACOTES",
   progress:"PROGRESSO", map:"MAPA-MÚNDI", reports:"RELATÓRIOS",
-  backup:"BACKUP", sobre:"SOBRE",
+  backup:"BACKUP", theme:"APARÊNCIA", sobre:"SOBRE",
 };
 
 export default function App() {
@@ -1306,14 +1547,18 @@ export default function App() {
   const [banner,  setBanner]  = useState(null);
   const [locked,  setLocked]  = useState(loadLock);
   const [theme,   setTheme]   = useState(loadTheme);
+  const [accent,  setAccent]  = useState(loadAccent);
   const ttRef = useRef(null);
 
   function toggleLocked() {
     setLocked(l => { const next = !l; persistLock(next); return next; });
   }
   function toggleTheme() {
-    setTheme(t => { const next = t==="dark"?"light":"dark"; persistTheme(next); return next; });
+    const keys = Object.keys(THEMES);
+    setTheme(t => { const next = keys[(keys.indexOf(t)+1)%keys.length]; persistTheme(next); return next; });
   }
+  function handleTheme(t)  { setTheme(t);  persistTheme(t);  }
+  function handleAccent(a) { setAccent(a); persistAccent(a); }
 
   function showToast(msg,type="ok"){
     setToast({msg,type});
@@ -1348,7 +1593,7 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        :root{${themeCSS(theme)}}
+        :root{${themeCSS(theme, accent)}}
         body{background:var(--bg);}
         @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
         input::placeholder{color:var(--ph);}
@@ -1371,10 +1616,10 @@ export default function App() {
             {page==="album"&&<div style={{ fontSize:".6rem",color:"var(--muted)",fontWeight:800,letterSpacing:".5px",textTransform:"uppercase",marginTop:1 }}>{have} de {TOTAL} figurinhas · {pct}% completo</div>}
           </div>
 
-          {/* theme toggle */}
-          <button onClick={toggleTheme} title={theme==="dark"?"Modo claro":"Modo escuro"}
+          {/* theme toggle — cycles through themes */}
+          <button onClick={toggleTheme} title="Mudar tema"
             style={{ background:"none",border:"1px solid var(--bdr)",borderRadius:8,padding:"5px 8px",cursor:"pointer",fontSize:16,lineHeight:1,WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center" }}>
-            {theme==="dark" ? "☀️" : "🌙"}
+            🎨
           </button>
 
           {/* lock */}
@@ -1399,6 +1644,7 @@ export default function App() {
           {page==="map"     && <WorldMapPage col={col}  />}
           {page==="reports" && <ReportsPage  col={col} onToast={showToast}  />}
           {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast}  />}
+          {page==="theme"   && <ThemePage    theme={theme} accent={accent} onTheme={handleTheme} onAccent={handleAccent} />}
           {page==="sobre"   && <SobrePage     />}
         </div>
 

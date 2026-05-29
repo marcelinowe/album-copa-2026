@@ -131,60 +131,67 @@ function persistTheme(v)  { localStorage.setItem(THEME_KEY, v); }
 function loadAccent() { return localStorage.getItem(ACCENT_KEY) || "gold"; }
 function persistAccent(v) { localStorage.setItem(ACCENT_KEY, v); }
 
-// ─── SYNC COMPRESSION ────────────────────────────────────────────────────────
-// Compact format: encode all stickers as a positional string
-// Each sticker gets a single char: '0'=none, '1'=have 1, '2'=have 2, etc.
-// Then RLE compress: "000011100" -> "4z1z3z" type scheme
-// Then base64 encode
+// ─── SYNC COMPRESSION — BITMASK ──────────────────────────────────────────────
+// Presence: 1 bit per sticker (994 bits = 125 bytes = ~168 chars base64) — always fixed size
+// Extras:   only stickers with qty > 1, as "index:qty" pairs — typically very few
+//
+// Format: base64(bitmask_125_bytes) + "." + base64(extras)
+// Example decoded: "...bitmask..." + "." + "3:2,47:3"  (sticker #3 has 2, #47 has 3)
 
-// Build ordered sticker list once
 const ORDERED_STICKERS = GROUPS.flatMap(g => g.teams.flatMap(t => t.stickers));
+const N = ORDERED_STICKERS.length; // 994
 
 function encodeCollection(col) {
   try {
-    // Build value string: one char per sticker (0-9, capped at 9)
-    const raw = ORDERED_STICKERS.map(s => Math.min(col[s.id]||0, 9).toString()).join("");
+    // Build bitmask: 1 bit per sticker, 1=have, 0=not
+    const bytes = new Uint8Array(Math.ceil(N / 8));
+    const extras = [];
 
-    // RLE compress: consecutive same chars -> count+char (if count>1)
-    let rle = "";
-    let i = 0;
-    while(i < raw.length) {
-      const ch = raw[i];
-      let count = 1;
-      while(i + count < raw.length && raw[i+count] === ch && count < 99) count++;
-      rle += count > 1 ? count + ch : ch;
-      i += count;
-    }
+    ORDERED_STICKERS.forEach((s, i) => {
+      const qty = col[s.id] || 0;
+      if(qty > 0) {
+        bytes[Math.floor(i/8)] |= (1 << (i % 8));
+        if(qty > 1) extras.push(`${i}:${qty}`);
+      }
+    });
 
-    return btoa(unescape(encodeURIComponent(rle)));
+    // Convert Uint8Array to base64
+    const bitmaskB64 = btoa(String.fromCharCode(...bytes));
+    const extrasB64  = extras.length ? btoa(extras.join(",")) : "";
+
+    return bitmaskB64 + (extrasB64 ? "." + extrasB64 : "");
   } catch { return ""; }
 }
 
 function decodeCollection(str) {
   try {
-    const rle = decodeURIComponent(escape(atob(str)));
+    const [bitmaskB64, extrasB64] = str.split(".");
 
-    // Decompress RLE
-    let raw = "";
-    let i = 0;
-    while(i < rle.length) {
-      // Check if current chars form a number prefix
-      let numStr = "";
-      while(i < rle.length && rle[i] >= "0" && rle[i] <= "9" && numStr.length < 2) {
-        numStr += rle[i++];
+    // Decode bitmask
+    const bitmaskStr = atob(bitmaskB64);
+    const bytes = new Uint8Array(bitmaskStr.length);
+    for(let i = 0; i < bitmaskStr.length; i++) bytes[i] = bitmaskStr.charCodeAt(i);
+
+    const col = {};
+
+    // Set qty=1 for all bits set
+    ORDERED_STICKERS.forEach((s, i) => {
+      if(bytes[Math.floor(i/8)] & (1 << (i % 8))) {
+        col[s.id] = 1;
       }
-      if(i >= rle.length) break;
-      const ch    = rle[i++];
-      const count = numStr ? parseInt(numStr) : 1;
-      raw += ch.repeat(count);
+    });
+
+    // Override with extras (qty > 1)
+    if(extrasB64) {
+      const extras = atob(extrasB64);
+      extras.split(",").forEach(pair => {
+        const [idx, qty] = pair.split(":").map(Number);
+        if(!isNaN(idx) && !isNaN(qty) && ORDERED_STICKERS[idx]) {
+          col[ORDERED_STICKERS[idx].id] = qty;
+        }
+      });
     }
 
-    // Rebuild collection
-    const col = {};
-    ORDERED_STICKERS.forEach((s, idx) => {
-      const qty = parseInt(raw[idx]||"0");
-      if(qty > 0) col[s.id] = qty;
-    });
     return col;
   } catch { return null; }
 }

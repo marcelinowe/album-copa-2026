@@ -1510,24 +1510,47 @@ function SyncPage({ col, onImport, onToast }) {
     }
   }, []);
 
+  const [shortening, setShortening] = useState(false);
+
   function generateLink() {
     const encoded = encodeCollection(col);
-    if(!encoded) { onToast("Nenhuma figurinha para compartilhar","err"); return; }
+    if(!encoded) { onToast("Nenhuma figurinha para compartilhar","err"); return null; }
     return `${window.location.origin}${window.location.pathname}?sync=${encoded}`;
   }
 
-  function shareWhatsApp() {
-    const link = generateLink();
-    if(!link) return;
-    const msg  = `🏆 *Álbum Copa 2026 — Minha Coleção*\n\nToque no link para importar minhas figurinhas:\n${link}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
-    onToast("✅ Link gerado!", "ok");
+  async function shorten(longUrl) {
+    try {
+      const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+      if(!res.ok) throw new Error();
+      const short = await res.text();
+      if(!short.startsWith("http")) throw new Error();
+      return short.trim();
+    } catch {
+      return null; // fallback to long url
+    }
   }
 
-  function copyLink() {
+  async function shareWhatsApp() {
     const link = generateLink();
     if(!link) return;
-    navigator.clipboard?.writeText(link).then(() => onToast("✅ Link copiado!", "ok"))
+    setShortening(true);
+    const short = await shorten(link);
+    setShortening(false);
+    const finalLink = short || link;
+    const msg = `🏆 *Álbum Copa 2026 — Minha Coleção*\n\nToque no link para importar minhas figurinhas:\n${finalLink}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+    onToast(short ? "✅ Link encurtado e enviado!" : "✅ Link enviado!", "ok");
+  }
+
+  async function copyLink() {
+    const link = generateLink();
+    if(!link) return;
+    setShortening(true);
+    const short = await shorten(link);
+    setShortening(false);
+    const finalLink = short || link;
+    navigator.clipboard?.writeText(finalLink)
+      .then(() => onToast(short ? "✅ Link encurtado e copiado!" : "✅ Link copiado!", "ok"))
       .catch(() => onToast("❌ Não foi possível copiar", "err"));
   }
 
@@ -1540,8 +1563,6 @@ function SyncPage({ col, onImport, onToast }) {
 
   const have  = Object.values(col).filter(v=>v>0).length;
   const pct   = Math.round((have/TOTAL)*100);
-
-  // preview stats
   const prevHave = preview ? Object.values(preview).filter(v=>v>0).length : 0;
   const prevPct  = preview ? Math.round((prevHave/TOTAL)*100) : 0;
 
@@ -1554,7 +1575,7 @@ function SyncPage({ col, onImport, onToast }) {
         </p>
       </div>
 
-      {/* Import preview — shown when arriving via sync link */}
+      {/* Import preview */}
       {preview && (
         <div style={{ margin:"0 12px 14px",background:"rgba(0,200,83,0.08)",border:"1.5px solid rgba(0,200,83,0.35)",borderRadius:16,padding:"16px" }}>
           <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px",color:green,marginBottom:8 }}>📥 COLEÇÃO RECEBIDA</div>
@@ -1585,10 +1606,10 @@ function SyncPage({ col, onImport, onToast }) {
       <div style={{ margin:"0 12px 12px",background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:16,padding:"16px" }}>
         <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px",marginBottom:4 }}>📤 COMPARTILHAR MINHA COLEÇÃO</div>
         <p style={{ fontSize:".75rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:14 }}>
-          Gera um link com toda a sua coleção atual ({have} figurinhas). Quem abrir o link poderá importar seus dados.
+          Gera um link encurtado via TinyURL com toda a sua coleção ({have} figurinhas).
         </p>
 
-        {/* current stats */}
+        {/* stats */}
         <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:14 }}>
           {[["Tenho",have],["Faltam",TOTAL-have],["Completo",pct+"%"]].map(([l,v])=>(
             <div key={l} style={{ background:"var(--card2)",borderRadius:10,padding:"8px 6px",textAlign:"center" }}>
@@ -1599,12 +1620,17 @@ function SyncPage({ col, onImport, onToast }) {
         </div>
 
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          <button onClick={shareWhatsApp} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
-            📲 COMPARTILHAR NO WHATSAPP
+          <button onClick={shareWhatsApp} disabled={shortening} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:shortening?"default":"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:shortening?0.7:1 }}>
+            {shortening ? "⏳ ENCURTANDO..." : "📲 COMPARTILHAR NO WHATSAPP"}
           </button>
-          <button onClick={copyLink} style={{ width:"100%",padding:13,border:"1px solid var(--bdr)",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"var(--card2)",color:"var(--text)",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
-            🔗 COPIAR LINK
+          <button onClick={copyLink} disabled={shortening} style={{ width:"100%",padding:13,border:"1px solid var(--bdr)",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:shortening?"default":"pointer",background:"var(--card2)",color:"var(--text)",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:shortening?0.7:1 }}>
+            {shortening ? "⏳ ENCURTANDO..." : "🔗 COPIAR LINK"}
           </button>
+        </div>
+
+        {/* TinyURL badge */}
+        <div style={{ marginTop:10,textAlign:"center",fontSize:".65rem",color:"var(--muted)",fontWeight:700 }}>
+          🔒 Link encurtado via <strong>TinyURL</strong> — gratuito e sem rastreamento
         </div>
       </div>
 

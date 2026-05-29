@@ -143,7 +143,6 @@ const N = ORDERED_STICKERS.length; // 994
 
 function encodeCollection(col) {
   try {
-    // Build bitmask: 1 bit per sticker, 1=have, 0=not
     const bytes = new Uint8Array(Math.ceil(N / 8));
     const extras = [];
 
@@ -155,9 +154,11 @@ function encodeCollection(col) {
       }
     });
 
-    // Convert Uint8Array to base64
-    const bitmaskB64 = btoa(String.fromCharCode(...bytes));
-    const extrasB64  = extras.length ? btoa(extras.join(",")) : "";
+    // URL-safe base64: replace +->- and /->_ and strip padding =
+    const toUrlB64 = (str) => btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+
+    const bitmaskB64 = toUrlB64(String.fromCharCode(...bytes));
+    const extrasB64  = extras.length ? toUrlB64(extras.join(",")) : "";
 
     return bitmaskB64 + (extrasB64 ? "." + extrasB64 : "");
   } catch { return ""; }
@@ -167,23 +168,24 @@ function decodeCollection(str) {
   try {
     const [bitmaskB64, extrasB64] = str.split(".");
 
-    // Decode bitmask
-    const bitmaskStr = atob(bitmaskB64);
+    // Reverse URL-safe base64: ->>+ and _->/ and restore padding
+    const fromUrlB64 = (s) => {
+      const std = s.replace(/-/g,'+').replace(/_/g,'/');
+      const pad = std.length % 4 ? std + '='.repeat(4 - std.length % 4) : std;
+      return atob(pad);
+    };
+
+    const bitmaskStr = fromUrlB64(bitmaskB64);
     const bytes = new Uint8Array(bitmaskStr.length);
     for(let i = 0; i < bitmaskStr.length; i++) bytes[i] = bitmaskStr.charCodeAt(i);
 
     const col = {};
-
-    // Set qty=1 for all bits set
     ORDERED_STICKERS.forEach((s, i) => {
-      if(bytes[Math.floor(i/8)] & (1 << (i % 8))) {
-        col[s.id] = 1;
-      }
+      if(bytes[Math.floor(i/8)] & (1 << (i % 8))) col[s.id] = 1;
     });
 
-    // Override with extras (qty > 1)
     if(extrasB64) {
-      const extras = atob(extrasB64);
+      const extras = fromUrlB64(extrasB64);
       extras.split(",").forEach(pair => {
         const [idx, qty] = pair.split(":").map(Number);
         if(!isNaN(idx) && !isNaN(qty) && ORDERED_STICKERS[idx]) {

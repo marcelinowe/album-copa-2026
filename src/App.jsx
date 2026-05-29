@@ -131,6 +131,64 @@ function persistTheme(v)  { localStorage.setItem(THEME_KEY, v); }
 function loadAccent() { return localStorage.getItem(ACCENT_KEY) || "gold"; }
 function persistAccent(v) { localStorage.setItem(ACCENT_KEY, v); }
 
+// ─── SYNC COMPRESSION ────────────────────────────────────────────────────────
+// Compact format: encode all stickers as a positional string
+// Each sticker gets a single char: '0'=none, '1'=have 1, '2'=have 2, etc.
+// Then RLE compress: "000011100" -> "4z1z3z" type scheme
+// Then base64 encode
+
+// Build ordered sticker list once
+const ORDERED_STICKERS = GROUPS.flatMap(g => g.teams.flatMap(t => t.stickers));
+
+function encodeCollection(col) {
+  try {
+    // Build value string: one char per sticker (0-9, capped at 9)
+    const raw = ORDERED_STICKERS.map(s => Math.min(col[s.id]||0, 9).toString()).join("");
+
+    // RLE compress: consecutive same chars -> count+char (if count>1)
+    let rle = "";
+    let i = 0;
+    while(i < raw.length) {
+      const ch = raw[i];
+      let count = 1;
+      while(i + count < raw.length && raw[i+count] === ch && count < 99) count++;
+      rle += count > 1 ? count + ch : ch;
+      i += count;
+    }
+
+    return btoa(unescape(encodeURIComponent(rle)));
+  } catch { return ""; }
+}
+
+function decodeCollection(str) {
+  try {
+    const rle = decodeURIComponent(escape(atob(str)));
+
+    // Decompress RLE
+    let raw = "";
+    let i = 0;
+    while(i < rle.length) {
+      // Check if current chars form a number prefix
+      let numStr = "";
+      while(i < rle.length && rle[i] >= "0" && rle[i] <= "9" && numStr.length < 2) {
+        numStr += rle[i++];
+      }
+      if(i >= rle.length) break;
+      const ch    = rle[i++];
+      const count = numStr ? parseInt(numStr) : 1;
+      raw += ch.repeat(count);
+    }
+
+    // Rebuild collection
+    const col = {};
+    ORDERED_STICKERS.forEach((s, idx) => {
+      const qty = parseInt(raw[idx]||"0");
+      if(qty > 0) col[s.id] = qty;
+    });
+    return col;
+  } catch { return null; }
+}
+
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
 const green = "#00c853";
 const red   = "#ff4444";
@@ -1181,7 +1239,7 @@ function ReportsPage({ col, onToast}) {
     };
     if(type==="have"||type==="all") add(`✅ FIGURINHAS CONSEGUIDAS (${have})`,()=>s=>(col[s.id]||0)>0,s=>s.label);
     if(type==="miss"||type==="all") add(`❌ FIGURINHAS FALTANDO (${miss})`,()=>s=>(col[s.id]||0)===0,s=>s.label);
-    if(type==="dbl"||type==="all")  add(`⭐ FIGURINHAS REPETIDAS (${dbl} tipos)`,()=>s=>(col[s.id]||0)>1,s=>`${s.label} (×${col[s.id]-1} extra)`);
+    if(type==="dbl"||type==="all")  add(`⭐ FIGURINHAS REPETIDAS (${dbl} tipos)`,()=>s=>(col[s.id]||0)>1,s=>`${s.label} (×${col[s.id]-1})`);
     lines.push("═══════════════════════════════════════");
     return lines.join("\n");
   }
@@ -1422,6 +1480,151 @@ ${sections}
   );
 }
 
+// ─── SYNC PAGE ────────────────────────────────────────────────────────────────
+function SyncPage({ col, onImport, onToast }) {
+  const [imported, setImported] = useState(false);
+  const [preview,  setPreview]  = useState(null); // decoded col before confirming
+
+  // Check if arriving with ?sync= in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const data   = params.get("sync");
+    if(data) {
+      const decoded = decodeCollection(data);
+      if(decoded && Object.keys(decoded).length > 0) {
+        setPreview(decoded);
+      } else {
+        onToast("❌ Link inválido ou expirado", "err");
+      }
+      // Clean URL without reloading
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  function generateLink() {
+    const encoded = encodeCollection(col);
+    if(!encoded) { onToast("Nenhuma figurinha para compartilhar","err"); return; }
+    return `${window.location.origin}${window.location.pathname}?sync=${encoded}`;
+  }
+
+  function shareWhatsApp() {
+    const link = generateLink();
+    if(!link) return;
+    const msg  = `🏆 *Álbum Copa 2026 — Minha Coleção*\n\nToque no link para importar minhas figurinhas:\n${link}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+    onToast("✅ Link gerado!", "ok");
+  }
+
+  function copyLink() {
+    const link = generateLink();
+    if(!link) return;
+    navigator.clipboard?.writeText(link).then(() => onToast("✅ Link copiado!", "ok"))
+      .catch(() => onToast("❌ Não foi possível copiar", "err"));
+  }
+
+  function confirmImport() {
+    onImport(preview);
+    setPreview(null);
+    setImported(true);
+    onToast("✅ Coleção importada com sucesso!", "ok");
+  }
+
+  const have  = Object.values(col).filter(v=>v>0).length;
+  const pct   = Math.round((have/TOTAL)*100);
+
+  // preview stats
+  const prevHave = preview ? Object.values(preview).filter(v=>v>0).length : 0;
+  const prevPct  = preview ? Math.round((prevHave/TOTAL)*100) : 0;
+
+  return (
+    <div>
+      <div style={{ padding:"16px 12px 8px" }}>
+        <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔗 SINCRONIZAR</h2>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2,lineHeight:1.5 }}>
+          Compartilhe sua coleção via link. Quem abrir o link pode importar suas figurinhas.
+        </p>
+      </div>
+
+      {/* Import preview — shown when arriving via sync link */}
+      {preview && (
+        <div style={{ margin:"0 12px 14px",background:"rgba(0,200,83,0.08)",border:"1.5px solid rgba(0,200,83,0.35)",borderRadius:16,padding:"16px" }}>
+          <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px",color:green,marginBottom:8 }}>📥 COLEÇÃO RECEBIDA</div>
+          <p style={{ fontSize:".78rem",color:"var(--muted)",fontWeight:700,marginBottom:12,lineHeight:1.5 }}>
+            Um link de sincronização foi detectado. Deseja importar essa coleção?
+          </p>
+          <div style={{ display:"flex",gap:8,marginBottom:12 }}>
+            <div style={{ flex:1,background:"var(--card)",borderRadius:10,padding:"10px",textAlign:"center" }}>
+              <div style={{ fontFamily:font.title,fontSize:"1.4rem",color:green }}>{prevHave}</div>
+              <div style={{ fontSize:".6rem",color:"var(--muted)",fontWeight:800,textTransform:"uppercase" }}>Figurinhas</div>
+            </div>
+            <div style={{ flex:1,background:"var(--card)",borderRadius:10,padding:"10px",textAlign:"center" }}>
+              <div style={{ fontFamily:font.title,fontSize:"1.4rem",color:green }}>{prevPct}%</div>
+              <div style={{ fontSize:".6rem",color:"var(--muted)",fontWeight:800,textTransform:"uppercase" }}>Completo</div>
+            </div>
+          </div>
+          <div style={{ background:"rgba(255,68,68,0.08)",border:"1px solid rgba(255,68,68,0.25)",borderRadius:9,padding:"8px 12px",fontSize:".72rem",color:"#ff6b6b",fontWeight:700,marginBottom:12,lineHeight:1.5 }}>
+            ⚠️ Isso vai <strong>substituir</strong> sua coleção atual ({have} figurinhas, {pct}%). Faça um backup antes se necessário.
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <button onClick={()=>setPreview(null)} style={{ flex:1,padding:11,border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer" }}>Cancelar</button>
+            <button onClick={confirmImport} style={{ flex:2,padding:11,border:"none",borderRadius:10,background:`linear-gradient(135deg,${green},#009640)`,color:"#fff",fontFamily:font.title,fontSize:".95rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>✅ IMPORTAR</button>
+          </div>
+        </div>
+      )}
+
+      {/* Export / Share */}
+      <div style={{ margin:"0 12px 12px",background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:16,padding:"16px" }}>
+        <div style={{ fontFamily:font.title,fontSize:"1rem",letterSpacing:"1px",marginBottom:4 }}>📤 COMPARTILHAR MINHA COLEÇÃO</div>
+        <p style={{ fontSize:".75rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:14 }}>
+          Gera um link com toda a sua coleção atual ({have} figurinhas). Quem abrir o link poderá importar seus dados.
+        </p>
+
+        {/* current stats */}
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:14 }}>
+          {[["Tenho",have],["Faltam",TOTAL-have],["Completo",pct+"%"]].map(([l,v])=>(
+            <div key={l} style={{ background:"var(--card2)",borderRadius:10,padding:"8px 6px",textAlign:"center" }}>
+              <div style={{ fontFamily:font.title,fontSize:"1.2rem",color:gold }}>{v}</div>
+              <div style={{ fontSize:".58rem",color:"var(--muted)",fontWeight:800,textTransform:"uppercase",marginTop:2 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+          <button onClick={shareWhatsApp} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            📲 COMPARTILHAR NO WHATSAPP
+          </button>
+          <button onClick={copyLink} style={{ width:"100%",padding:13,border:"1px solid var(--bdr)",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"var(--card2)",color:"var(--text)",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            🔗 COPIAR LINK
+          </button>
+        </div>
+      </div>
+
+      {/* How it works */}
+      <div style={{ margin:"0 12px 12px",background:"rgba(255,215,0,0.05)",border:"1px solid rgba(255,215,0,0.15)",borderRadius:12,padding:"12px 14px" }}>
+        <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",marginBottom:8 }}>💡 COMO FUNCIONA</div>
+        <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
+          {[
+            ["1️⃣","Toque em Compartilhar no WhatsApp ou Copiar Link"],
+            ["2️⃣","Envie o link para o outro dispositivo"],
+            ["3️⃣","No outro aparelho, abra o link no navegador"],
+            ["4️⃣","O app detecta o link e oferece importar a coleção"],
+          ].map(([n,t])=>(
+            <div key={n} style={{ display:"flex",gap:8,alignItems:"flex-start" }}>
+              <span style={{ fontSize:14,flexShrink:0 }}>{n}</span>
+              <span style={{ fontSize:".75rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5 }}>{t}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop:10,fontSize:".68rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,borderTop:"1px solid var(--bdr)",paddingTop:8 }}>
+          ⚠️ O link contém toda a sua coleção. Não o compartilhe publicamente. Funciona somente com a URL do app hospedado.
+        </div>
+      </div>
+
+      <div style={{ height:14 }} />
+    </div>
+  );
+}
+
 // ─── BACKUP PAGE ──────────────────────────────────────────────────────────────
 function BackupPage({ col, onImport, onToast}) {
   function exportBackup(){ const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),collection:col},null,2)],{type:"application/json"})),download:"album-copa-backup.json"});document.body.appendChild(a);a.click();document.body.removeChild(a);onToast("✅ Backup exportado!","ok"); }
@@ -1440,7 +1643,7 @@ function BackupPage({ col, onImport, onToast}) {
   );
 }
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 
 // ─── SOBRE PAGE ───────────────────────────────────────────────────────────────
 function SobrePage({}) {
@@ -1613,6 +1816,7 @@ function HamburgerMenu({ onSelect}) {
     {id:"progress", ico:"📊", label:"Progresso"},
     {id:"map",      ico:"🗺️", label:"Mapa-Múndi"},
     {id:"reports",  ico:"📋", label:"Relatórios"},
+    {id:"sync",     ico:"🔗", label:"Sincronizar"},
     {id:"backup",   ico:"💾", label:"Backup"},
     {id:"theme",    ico:"🎨", label:"Aparência"},
     {id:"sobre",    ico:"ℹ️", label:"Sobre"},
@@ -1641,7 +1845,7 @@ const PAGE_TITLES = {
   album:"COPA 2026", doubles:"REPETIDAS", have:"TENHO", miss:"FALTAM",
   search:"BUSCA RÁPIDA", trade:"MODO TROCA", packets:"PACOTES",
   progress:"PROGRESSO", map:"MAPA-MÚNDI", reports:"RELATÓRIOS",
-  backup:"BACKUP", theme:"APARÊNCIA", sobre:"SOBRE",
+  sync:"SINCRONIZAR", backup:"BACKUP", theme:"APARÊNCIA", sobre:"SOBRE",
 };
 
 export default function App() {
@@ -1666,6 +1870,12 @@ export default function App() {
   }
   function handleTheme(t)  { setTheme(t);  persistTheme(t);  }
   function handleAccent(a) { setAccent(a); persistAccent(a); }
+
+  // Check for ?sync= in URL on first load — navigate to sync page
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if(params.get("sync")) setPage("sync");
+  }, []);
 
   function showToast(msg,type="ok"){
     setToast({msg,type});
@@ -1751,6 +1961,7 @@ export default function App() {
           {page==="map"     && <WorldMapPage col={col}  />}
           {page==="reports" && <ReportsPage  col={col} onToast={showToast}  />}
           {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast}  />}
+          {page==="sync"    && <SyncPage     col={col} onImport={importCol} onToast={showToast}  />}
           {page==="theme"   && <ThemePage    theme={theme} accent={accent} onTheme={handleTheme} onAccent={handleAccent} />}
           {page==="sobre"   && <SobrePage     />}
         </div>

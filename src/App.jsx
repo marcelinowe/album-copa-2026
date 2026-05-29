@@ -1876,6 +1876,8 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if(params.get("sync")) setPage("sync");
   }, []);
+
+  function showToast(msg,type="ok"){
     setToast({msg,type});
     clearTimeout(ttRef.current);
     ttRef.current=setTimeout(()=>setToast(null),2500);

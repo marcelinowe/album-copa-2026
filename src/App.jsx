@@ -1520,11 +1520,11 @@ function SyncPage({ col, onImport, onToast }) {
 
   async function shorten(longUrl) {
     try {
-      const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+      const res = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`);
       if(!res.ok) throw new Error();
-      const short = await res.text();
-      if(!short.startsWith("http")) throw new Error();
-      return short.trim();
+      const data = await res.json();
+      if(!data.shorturl) throw new Error();
+      return data.shorturl;
     } catch {
       return null; // fallback to long url
     }
@@ -1630,7 +1630,7 @@ function SyncPage({ col, onImport, onToast }) {
 
         {/* TinyURL badge */}
         <div style={{ marginTop:10,textAlign:"center",fontSize:".65rem",color:"var(--muted)",fontWeight:700 }}>
-          🔒 Link encurtado via <strong>TinyURL</strong> — gratuito e sem rastreamento
+          🔒 Link encurtado via <strong>is.gd</strong> — gratuito, sem anúncios, redirecionamento instantâneo
         </div>
       </div>
 

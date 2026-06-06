@@ -681,20 +681,35 @@ function DoublesPage({ col}) {
 
 // ─── TRADE PAGE ───────────────────────────────────────────────────────────────
 function TradePage({ col, onToast}) {
-  const [selected, setSelected] = useState(new Set());
+  const [selected,     setSelected]     = useState(new Set());
+  const [selectedMiss, setSelectedMiss] = useState(new Set());
+  const [tab,          setTab]          = useState("doubles"); // "doubles" | "missing"
 
+  // Build doubles list
   const allDoubles = [];
   for(const grp of GROUPS)
     for(const team of grp.teams)
       for(const s of team.stickers)
         if((col[s.id]||0)>1) allDoubles.push({...s, team, extra:col[s.id]-1});
 
+  // Build missing list
+  const allMissing = [];
+  for(const grp of GROUPS)
+    for(const team of grp.teams)
+      for(const s of team.stickers)
+        if((col[s.id]||0)===0) allMissing.push({...s, team});
+
   function toggleAll() {
     if(selected.size===allDoubles.length) setSelected(new Set());
     else setSelected(new Set(allDoubles.map(s=>s.id)));
   }
 
-  function shareWhatsApp() {
+  function toggleAllMiss() {
+    if(selectedMiss.size===allMissing.length) setSelectedMiss(new Set());
+    else setSelectedMiss(new Set(allMissing.map(s=>s.id)));
+  }
+
+  function shareDoublesWhatsApp() {
     const items = allDoubles.filter(s=>selected.has(s.id));
     if(!items.length){onToast("Selecione figurinhas para trocar","err");return;}
     const lines=["🏆 *FIGURINHAS PARA TROCAR - Copa 2026*",""];
@@ -702,51 +717,127 @@ function TradePage({ col, onToast}) {
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
       lines.push(`${team.flag} *${team.name}*`);
-      lines.push(items.map(s=>`${s.label}${s.extra>1?" (×"+s.extra+"x)":""}`).join(", "));
+      lines.push(items.map(s=>`${s.label}${s.extra>1?" ("+s.extra+"x)":""}`).join(", "));
       lines.push("");
     });
     lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
     lines.push("_Álbum Copa 2026_");
-    const encoded=encodeURIComponent(lines.join("\n"));
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`,"_blank");
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
   }
+
+  function shareMissingWhatsApp() {
+    const items = allMissing.filter(s=>selectedMiss.has(s.id));
+    if(!items.length){onToast("Selecione figurinhas que precisa","err");return;}
+    const lines=["🏆 *FIGURINHAS QUE PRECISO - Copa 2026*",""];
+    const byTeam={};
+    items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
+    Object.values(byTeam).forEach(({team,items})=>{
+      lines.push(`${team.flag} *${team.name}*`);
+      lines.push(items.map(s=>s.label).join(", "));
+      lines.push("");
+    });
+    lines.push(`📋 Total: ${items.length} figurinha${items.length!==1?"s":""} que preciso`);
+    lines.push("_Álbum Copa 2026_");
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
+  }
+
+  const tabStyle = (active) => ({
+    flex:1, padding:"10px", border:"none", borderRadius:10,
+    fontFamily:font.body, fontSize:".8rem", fontWeight:800, cursor:"pointer",
+    WebkitTapHighlightColor:"transparent",
+    background: active ? `linear-gradient(135deg,${gold},${gold2})` : "var(--card)",
+    color: active ? "#000" : "var(--muted)",
+    transition:"all .2s",
+  });
 
   return (
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔄 MODO TROCA</h2>
-        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Selecione as repetidas e compartilhe no WhatsApp</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Compartilhe o que você tem para trocar ou o que precisa</p>
       </div>
 
-      {allDoubles.length===0?(
-        <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}><div style={{ fontSize:46,marginBottom:10 }}>🔄</div><p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida para trocar ainda!</p></div>
-      ):(
-        <>
-          <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-            <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-              {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
-            </button>
-            <button onClick={shareWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-              📲 WHATSAPP
-            </button>
+      {/* Tabs */}
+      <div style={{ display:"flex",gap:6,margin:"0 12px 12px",background:"var(--card2)",borderRadius:12,padding:4 }}>
+        <button onClick={()=>setTab("doubles")} style={tabStyle(tab==="doubles")}>
+          ⭐ Repetidas ({allDoubles.length})
+        </button>
+        <button onClick={()=>setTab("missing")} style={tabStyle(tab==="missing")}>
+          ❌ Faltam ({allMissing.length})
+        </button>
+      </div>
+
+      {/* DOUBLES TAB */}
+      {tab==="doubles" && (
+        allDoubles.length===0 ? (
+          <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}>
+            <div style={{ fontSize:46,marginBottom:10 }}>🔄</div>
+            <p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida para trocar ainda!</p>
           </div>
-          <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
-            {selected.size} de {allDoubles.length} selecionadas
-          </div>
-          <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
-            {allDoubles.map(s=>{
-              const sel=selected.has(s.id);
-              return (
-                <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                  style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
-                  {s.team.flag} {s.label}
-                  <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>×{s.extra}</span>
-                </div>
-              );
-            })}
-          </div>
-        </>
+        ) : (
+          <>
+            <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
+              <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
+              </button>
+              <button onClick={shareDoublesWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                📲 WHATSAPP
+              </button>
+            </div>
+            <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
+              {selected.size} de {allDoubles.length} selecionadas
+            </div>
+            <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
+              {allDoubles.map(s=>{
+                const sel=selected.has(s.id);
+                return (
+                  <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
+                    style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
+                    {s.team.flag} {s.label}
+                    {s.extra>1 && <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>({s.extra}x)</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )
       )}
+
+      {/* MISSING TAB */}
+      {tab==="missing" && (
+        allMissing.length===0 ? (
+          <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}>
+            <div style={{ fontSize:46,marginBottom:10 }}>🏆</div>
+            <p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Álbum completo! Você tem todas as figurinhas!</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
+              <button onClick={toggleAllMiss} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                {selectedMiss.size===allMissing.length?"Desmarcar tudo":"Selecionar tudo"}
+              </button>
+              <button onClick={shareMissingWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                📲 WHATSAPP
+              </button>
+            </div>
+            <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
+              {selectedMiss.size} de {allMissing.length} selecionadas
+            </div>
+            <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
+              {allMissing.map(s=>{
+                const sel=selectedMiss.has(s.id);
+                return (
+                  <div key={s.id} onClick={()=>setSelectedMiss(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
+                    style={{ background:sel?"linear-gradient(135deg,rgba(255,68,68,.18),rgba(180,20,20,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#ff5252":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#ff6b6b":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
+                    {s.team.flag} {s.label}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )
+      )}
+
       <div style={{ height:14 }} />
     </div>
   );
@@ -1511,6 +1602,7 @@ function SyncPage({ col, onImport, onToast }) {
   }, []);
 
   const [shortening, setShortening] = useState(false);
+  const [shortLink,  setShortLink]  = useState(null);
 
   function generateLink() {
     const encoded = encodeCollection(col);
@@ -1518,40 +1610,30 @@ function SyncPage({ col, onImport, onToast }) {
     return `${window.location.origin}${window.location.pathname}?sync=${encoded}`;
   }
 
-  async function shorten(longUrl) {
-    try {
-      const res = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`);
-      if(!res.ok) throw new Error();
-      const data = await res.json();
-      if(!data.shorturl) throw new Error();
-      return data.shorturl;
-    } catch {
-      return null; // fallback to long url
-    }
-  }
-
-  async function shareWhatsApp() {
-    const link = generateLink();
+  function shareWhatsApp() {
+    const link = shortLink || generateLink();
     if(!link) return;
-    setShortening(true);
-    const short = await shorten(link);
-    setShortening(false);
-    const finalLink = short || link;
-    const msg = `🏆 *Álbum Copa 2026 — Minha Coleção*\n\nToque no link para importar minhas figurinhas:\n${finalLink}`;
+    const msg = `🏆 *Álbum Copa 2026 — Minha Coleção*\n\nToque no link para importar minhas figurinhas:\n${link}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
-    onToast(short ? "✅ Link encurtado e enviado!" : "✅ Link enviado!", "ok");
+    onToast("✅ Link compartilhado!", "ok");
   }
 
-  async function copyLink() {
+  function copyLink() {
+    const link = shortLink || generateLink();
+    if(!link) return;
+    navigator.clipboard?.writeText(link)
+      .then(() => onToast("✅ Link copiado!", "ok"))
+      .catch(() => onToast("❌ Não foi possível copiar", "err"));
+  }
+
+  // Generate and show link on demand
+  function handleGenerateLink() {
     const link = generateLink();
     if(!link) return;
-    setShortening(true);
-    const short = await shorten(link);
-    setShortening(false);
-    const finalLink = short || link;
-    navigator.clipboard?.writeText(finalLink)
-      .then(() => onToast(short ? "✅ Link encurtado e copiado!" : "✅ Link copiado!", "ok"))
-      .catch(() => onToast("❌ Não foi possível copiar", "err"));
+    setShortLink(link);
+    navigator.clipboard?.writeText(link)
+      .then(() => onToast("✅ Link gerado e copiado!", "ok"))
+      .catch(() => onToast("✅ Link gerado!", "ok"));
   }
 
   function confirmImport() {
@@ -1620,17 +1702,27 @@ function SyncPage({ col, onImport, onToast }) {
         </div>
 
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          <button onClick={shareWhatsApp} disabled={shortening} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:shortening?"default":"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:shortening?0.7:1 }}>
-            {shortening ? "⏳ ENCURTANDO..." : "📲 COMPARTILHAR NO WHATSAPP"}
+          {/* Show link preview if generated */}
+          {shortLink && (
+            <div style={{ background:"var(--card2)",border:"1px solid var(--bdr)",borderRadius:10,padding:"10px 12px" }}>
+              <div style={{ fontSize:".65rem",color:"var(--muted)",fontWeight:800,marginBottom:4,textTransform:"uppercase" }}>Link gerado</div>
+              <div style={{ fontSize:".7rem",color:"var(--text)",fontWeight:700,wordBreak:"break-all",lineHeight:1.4 }}>{shortLink}</div>
+              <div style={{ fontSize:".62rem",color:"var(--muted)",marginTop:4,fontWeight:700 }}>~{shortLink.length} caracteres</div>
+            </div>
+          )}
+          <button onClick={handleGenerateLink} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:`linear-gradient(135deg,${gold},${gold2})`,color:"#000",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            🔗 GERAR E COPIAR LINK
           </button>
-          <button onClick={copyLink} disabled={shortening} style={{ width:"100%",padding:13,border:"1px solid var(--bdr)",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:shortening?"default":"pointer",background:"var(--card2)",color:"var(--text)",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,opacity:shortening?0.7:1 }}>
-            {shortening ? "⏳ ENCURTANDO..." : "🔗 COPIAR LINK"}
+          <button onClick={shareWhatsApp} style={{ width:"100%",padding:13,border:"none",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            📲 COMPARTILHAR NO WHATSAPP
+          </button>
+          <button onClick={copyLink} style={{ width:"100%",padding:13,border:"1px solid var(--bdr)",borderRadius:11,fontFamily:font.title,fontSize:"1rem",letterSpacing:"2px",cursor:"pointer",background:"var(--card2)",color:"var(--text)",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            📋 COPIAR LINK
           </button>
         </div>
 
-        {/* TinyURL badge */}
         <div style={{ marginTop:10,textAlign:"center",fontSize:".65rem",color:"var(--muted)",fontWeight:700 }}>
-          🔒 Link encurtado via <strong>is.gd</strong> — gratuito, sem anúncios, redirecionamento instantâneo
+          Link de ~300 caracteres — funciona direto no WhatsApp sem encurtador
         </div>
       </div>
 

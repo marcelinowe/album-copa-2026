@@ -680,10 +680,33 @@ function DoublesPage({ col}) {
 }
 
 // ─── TRADE PAGE ───────────────────────────────────────────────────────────────
+// ─── TRADE OFFER FORMAT ───────────────────────────────────────────────────────
+const OFFER_HEADER = "🏆 OFERTA DE TROCA - Copa 2026";
+function buildOfferText(doubles, missing) {
+  const lines = [OFFER_HEADER];
+  if(doubles.length) lines.push("TENHO: " + doubles.map(s=>s.id).join(","));
+  if(missing.length) lines.push("PRECISO: " + missing.map(s=>s.id).join(","));
+  return lines.join("\n");
+}
+function parseOfferText(text) {
+  try {
+    if(!text.includes(OFFER_HEADER)) return null;
+    const result = { doubles:[], missing:[] };
+    text.split("\n").forEach(line => {
+      if(line.startsWith("TENHO: "))  result.doubles = line.replace("TENHO: ","").split(",").map(s=>s.trim()).filter(Boolean);
+      if(line.startsWith("PRECISO: ")) result.missing = line.replace("PRECISO: ","").split(",").map(s=>s.trim()).filter(Boolean);
+    });
+    return result;
+  } catch { return null; }
+}
+
+// ─── TRADE PAGE ───────────────────────────────────────────────────────────────
 function TradePage({ col, onToast}) {
   const [selected,     setSelected]     = useState(new Set());
   const [selectedMiss, setSelectedMiss] = useState(new Set());
-  const [tab,          setTab]          = useState("doubles"); // "doubles" | "missing"
+  const [tab,          setTab]          = useState("mine");   // "mine" | "compare"
+  const [offerText,    setOfferText]    = useState("");
+  const [comparison,   setComparison]   = useState(null);
 
   // Build doubles list
   const allDoubles = [];
@@ -699,19 +722,24 @@ function TradePage({ col, onToast}) {
       for(const s of team.stickers)
         if((col[s.id]||0)===0) allMissing.push({...s, team});
 
-  function toggleAll() {
-    if(selected.size===allDoubles.length) setSelected(new Set());
-    else setSelected(new Set(allDoubles.map(s=>s.id)));
+  function toggleAll()     { if(selected.size===allDoubles.length) setSelected(new Set()); else setSelected(new Set(allDoubles.map(s=>s.id))); }
+  function toggleAllMiss() { if(selectedMiss.size===allMissing.length) setSelectedMiss(new Set()); else setSelectedMiss(new Set(allMissing.map(s=>s.id))); }
+
+  // Share my offer (doubles I selected + missing I selected)
+  function shareOffer() {
+    const dbl  = allDoubles.filter(s=>selected.has(s.id));
+    const miss = allMissing.filter(s=>selectedMiss.has(s.id));
+    if(!dbl.length && !miss.length){ onToast("Selecione figurinhas primeiro","err"); return; }
+    const txt  = buildOfferText(dbl, miss);
+    const msg  = txt + "\n\nCole esse texto no app Álbum Copa 2026 → Modo Troca → Comparar Trocas para ver o que podemos trocar!";
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`,"_blank");
+    onToast("✅ Oferta enviada!","ok");
   }
 
-  function toggleAllMiss() {
-    if(selectedMiss.size===allMissing.length) setSelectedMiss(new Set());
-    else setSelectedMiss(new Set(allMissing.map(s=>s.id)));
-  }
-
+  // Share only doubles
   function shareDoublesWhatsApp() {
     const items = allDoubles.filter(s=>selected.has(s.id));
-    if(!items.length){onToast("Selecione figurinhas para trocar","err");return;}
+    if(!items.length){ onToast("Selecione figurinhas para trocar","err"); return; }
     const lines=["🏆 *FIGURINHAS PARA TROCAR - Copa 2026*",""];
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
@@ -725,9 +753,10 @@ function TradePage({ col, onToast}) {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
   }
 
+  // Share only missing
   function shareMissingWhatsApp() {
     const items = allMissing.filter(s=>selectedMiss.has(s.id));
-    if(!items.length){onToast("Selecione figurinhas que precisa","err");return;}
+    if(!items.length){ onToast("Selecione figurinhas que precisa","err"); return; }
     const lines=["🏆 *FIGURINHAS QUE PRECISO - Copa 2026*",""];
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
@@ -741,6 +770,34 @@ function TradePage({ col, onToast}) {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
   }
 
+  // Compare offer from other person
+  function compareOffer() {
+    if(!offerText.trim()){ onToast("Cole o texto da oferta primeiro","err"); return; }
+    const parsed = parseOfferText(offerText.trim());
+    if(!parsed){ onToast("❌ Texto inválido — deve ser uma oferta do app Copa 2026","err"); return; }
+
+    // Build lookup maps
+    const allStickerMap = {};
+    ORDERED_STICKERS.forEach(s => allStickerMap[s.id] = s);
+
+    // What THEY have (their doubles) that I NEED (my missing)
+    const iCanGet = parsed.doubles
+      .map(id => allStickerMap[id])
+      .filter(s => s && (col[s.id]||0)===0); // I don't have it
+
+    // What I HAVE (my doubles selected) that THEY NEED (their missing)
+    const iCanGive = parsed.missing
+      .map(id => allStickerMap[id])
+      .filter(s => s && (col[s.id]||0)>1); // I have extra
+
+    setComparison({ iCanGet, iCanGive, parsed });
+    if(!iCanGet.length && !iCanGive.length){
+      onToast("Nenhuma troca possível encontrada","err");
+    } else {
+      onToast(`✅ ${iCanGet.length + iCanGive.length} trocas possíveis!`,"ok");
+    }
+  }
+
   const tabStyle = (active) => ({
     flex:1, padding:"10px", border:"none", borderRadius:10,
     fontFamily:font.body, fontSize:".8rem", fontWeight:800, cursor:"pointer",
@@ -750,92 +807,181 @@ function TradePage({ col, onToast}) {
     transition:"all .2s",
   });
 
+  const chipStyle = (sel, selColor) => ({
+    background: sel ? `linear-gradient(135deg,${selColor}30,${selColor}15)` : "rgba(255,255,255,0.03)",
+    border: `1.5px solid ${sel ? selColor : bdr}`,
+    borderRadius:8, padding:"5px 10px", fontSize:".72rem", fontWeight:800,
+    cursor:"pointer", display:"flex", alignItems:"center", gap:5,
+    color: sel ? selColor : "var(--text)",
+    WebkitTapHighlightColor:"transparent", transition:"all .15s",
+  });
+
   return (
     <div>
       <div style={{ padding:"16px 12px 8px" }}>
         <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🔄 MODO TROCA</h2>
-        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Compartilhe o que você tem para trocar ou o que precisa</p>
+        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Gerencie suas trocas e compare com outras coleções</p>
       </div>
 
       {/* Tabs */}
       <div style={{ display:"flex",gap:6,margin:"0 12px 12px",background:"var(--card2)",borderRadius:12,padding:4 }}>
-        <button onClick={()=>setTab("doubles")} style={tabStyle(tab==="doubles")}>
-          ⭐ Repetidas ({allDoubles.length})
-        </button>
-        <button onClick={()=>setTab("missing")} style={tabStyle(tab==="missing")}>
-          ❌ Faltam ({allMissing.length})
-        </button>
+        <button onClick={()=>setTab("mine")}    style={tabStyle(tab==="mine")}>🔄 Minhas Trocas</button>
+        <button onClick={()=>setTab("compare")} style={tabStyle(tab==="compare")}>🤝 Comparar</button>
       </div>
 
-      {/* DOUBLES TAB */}
-      {tab==="doubles" && (
-        allDoubles.length===0 ? (
-          <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}>
-            <div style={{ fontSize:46,marginBottom:10 }}>🔄</div>
-            <p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma repetida para trocar ainda!</p>
+      {/* ── MINHAS TROCAS TAB ── */}
+      {tab==="mine" && (
+        <div>
+          {/* Share full offer button */}
+          <div style={{ margin:"0 12px 12px",background:"rgba(37,211,102,0.06)",border:"1px solid rgba(37,211,102,0.25)",borderRadius:13,padding:"12px 14px" }}>
+            <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",marginBottom:4 }}>📤 ENVIAR OFERTA COMPLETA</div>
+            <p style={{ fontSize:".72rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:10 }}>
+              Selecione abaixo o que você tem para dar e o que precisa, depois envie a oferta. A outra pessoa cola no app dela para comparar automaticamente.
+            </p>
+            <button onClick={shareOffer} style={{ width:"100%",padding:12,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent" }}>
+              📲 ENVIAR OFERTA NO WHATSAPP
+            </button>
           </div>
-        ) : (
-          <>
-            <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-              <button onClick={toggleAll} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                {selected.size===allDoubles.length?"Desmarcar tudo":"Selecionar tudo"}
-              </button>
-              <button onClick={shareDoublesWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                📲 WHATSAPP
-              </button>
-            </div>
-            <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
-              {selected.size} de {allDoubles.length} selecionadas
-            </div>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
-              {allDoubles.map(s=>{
-                const sel=selected.has(s.id);
-                return (
-                  <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                    style={{ background:sel?"linear-gradient(135deg,rgba(37,211,102,.18),rgba(18,140,126,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#25D366":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#69ff94":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
-                    {s.team.flag} {s.label}
-                    {s.extra>1 && <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 6px",fontSize:".6rem" }}>({s.extra}x)</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )
+
+          {/* Doubles section */}
+          <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
+            ⭐ TENHO PARA DAR — {allDoubles.length} tipos repetidos
+          </div>
+          {allDoubles.length===0 ? (
+            <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>Nenhuma repetida ainda.</div>
+          ) : (
+            <>
+              <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
+                <button onClick={toggleAll} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
+                  {selected.size===allDoubles.length?"Desmarcar":"Selecionar tudo"}
+                </button>
+                <button onClick={shareDoublesWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                  📲 Só repetidas
+                </button>
+              </div>
+              <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
+                {allDoubles.map(s=>{
+                  const sel=selected.has(s.id);
+                  return (
+                    <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#25D366")}>
+                      {s.team.flag} {s.label}
+                      {s.extra>1 && <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 5px",fontSize:".6rem" }}>({s.extra}x)</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Missing section */}
+          <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
+            ❌ PRECISO — {allMissing.length} figurinhas faltando
+          </div>
+          {allMissing.length===0 ? (
+            <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>🏆 Álbum completo!</div>
+          ) : (
+            <>
+              <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
+                <button onClick={toggleAllMiss} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
+                  {selectedMiss.size===allMissing.length?"Desmarcar":"Selecionar tudo"}
+                </button>
+                <button onClick={shareMissingWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                  📲 Só faltando
+                </button>
+              </div>
+              <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
+                {allMissing.map(s=>{
+                  const sel=selectedMiss.has(s.id);
+                  return (
+                    <div key={s.id} onClick={()=>setSelectedMiss(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#ff5252")}>
+                      {s.team.flag} {s.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       )}
 
-      {/* MISSING TAB */}
-      {tab==="missing" && (
-        allMissing.length===0 ? (
-          <div style={{ textAlign:"center",padding:"50px 20px",color:"var(--muted)" }}>
-            <div style={{ fontSize:46,marginBottom:10 }}>🏆</div>
-            <p style={{ fontSize:".88rem",fontWeight:700,lineHeight:1.6 }}>Álbum completo! Você tem todas as figurinhas!</p>
+      {/* ── COMPARAR TAB ── */}
+      {tab==="compare" && (
+        <div>
+          <div style={{ margin:"0 12px 12px",background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"14px" }}>
+            <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",marginBottom:6 }}>📋 COLE A OFERTA AQUI</div>
+            <p style={{ fontSize:".72rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:10 }}>
+              Peça para a outra pessoa enviar a oferta dela pelo WhatsApp, copie o texto e cole abaixo.
+            </p>
+            <textarea
+              value={offerText}
+              onChange={e=>{ setOfferText(e.target.value); setComparison(null); }}
+              placeholder={"Cole aqui o texto da oferta...\n\n🏆 OFERTA DE TROCA - Copa 2026\nTENHO: BRA-1,ARG-5,...\nPRECISO: FRA-7,GER-2,..."}
+              rows={6}
+              style={{ width:"100%",padding:"10px 12px",background:"var(--card2)",border:"1.5px solid var(--bdr)",borderRadius:10,color:"var(--text)",fontFamily:font.body,fontSize:".78rem",outline:"none",resize:"vertical",lineHeight:1.5 }}
+            />
+            <button onClick={compareOffer} style={{ width:"100%",marginTop:10,padding:12,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${gold},${gold2})`,color:"#000",WebkitTapHighlightColor:"transparent" }}>
+              🔍 COMPARAR TROCAS
+            </button>
           </div>
-        ) : (
-          <>
-            <div style={{ display:"flex",gap:8,padding:"0 12px 10px",alignItems:"center" }}>
-              <button onClick={toggleAllMiss} style={{ flex:1,padding:"10px",border:"1px solid var(--bdr)",borderRadius:10,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".8rem",fontWeight:800,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                {selectedMiss.size===allMissing.length?"Desmarcar tudo":"Selecionar tudo"}
-              </button>
-              <button onClick={shareMissingWhatsApp} style={{ flex:1,padding:"10px",border:"none",borderRadius:10,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                📲 WHATSAPP
-              </button>
-            </div>
-            <div style={{ padding:"0 12px",marginBottom:6,fontSize:".72rem",color:"var(--muted)",fontWeight:800 }}>
-              {selectedMiss.size} de {allMissing.length} selecionadas
-            </div>
-            <div style={{ display:"flex",flexWrap:"wrap",gap:6,padding:"0 12px 12px" }}>
-              {allMissing.map(s=>{
-                const sel=selectedMiss.has(s.id);
-                return (
-                  <div key={s.id} onClick={()=>setSelectedMiss(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })}
-                    style={{ background:sel?"linear-gradient(135deg,rgba(255,68,68,.18),rgba(180,20,20,.1))":"rgba(255,255,255,0.03)",border:`1.5px solid ${sel?"#ff5252":bdr}`,borderRadius:8,padding:"5px 10px",fontSize:".72rem",fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:sel?"#ff6b6b":"var(--text)",WebkitTapHighlightColor:"transparent",transition:"all .15s" }}>
-                    {s.team.flag} {s.label}
+
+          {/* Comparison results */}
+          {comparison && (
+            <div>
+              {/* Summary */}
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"0 12px 12px" }}>
+                <div style={{ background:"rgba(0,200,83,0.08)",border:"1.5px solid rgba(0,200,83,0.3)",borderRadius:13,padding:"12px",textAlign:"center" }}>
+                  <div style={{ fontFamily:font.title,fontSize:"2rem",color:green }}>{comparison.iCanGet.length}</div>
+                  <div style={{ fontSize:".65rem",color:green,fontWeight:800,textTransform:"uppercase",marginTop:2 }}>Você recebe</div>
+                  <div style={{ fontSize:".62rem",color:"var(--muted)",fontWeight:700,marginTop:2 }}>que ela tem e você precisa</div>
+                </div>
+                <div style={{ background:"rgba(255,215,0,0.08)",border:"1.5px solid rgba(255,215,0,0.3)",borderRadius:13,padding:"12px",textAlign:"center" }}>
+                  <div style={{ fontFamily:font.title,fontSize:"2rem",color:gold }}>{comparison.iCanGive.length}</div>
+                  <div style={{ fontSize:".65rem",color:gold,fontWeight:800,textTransform:"uppercase",marginTop:2 }}>Você dá</div>
+                  <div style={{ fontSize:".62rem",color:"var(--muted)",fontWeight:700,marginTop:2 }}>que você tem extra e ela precisa</div>
+                </div>
+              </div>
+
+              {/* You receive */}
+              {comparison.iCanGet.length > 0 && (
+                <div style={{ padding:"0 12px 12px" }}>
+                  <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:green,marginBottom:8 }}>
+                    ✅ VOCÊ RECEBE ({comparison.iCanGet.length})
                   </div>
-                );
-              })}
+                  <div style={{ display:"flex",flexWrap:"wrap",gap:5 }}>
+                    {comparison.iCanGet.map(s=>(
+                      <div key={s.id} style={{ background:"rgba(0,200,83,0.12)",border:"1.5px solid rgba(0,200,83,0.35)",borderRadius:7,padding:"4px 9px",fontSize:".72rem",fontWeight:800,color:green }}>
+                        {s.team.flag} {s.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* You give */}
+              {comparison.iCanGive.length > 0 && (
+                <div style={{ padding:"0 12px 12px" }}>
+                  <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:gold,marginBottom:8 }}>
+                    ⭐ VOCÊ DÁ ({comparison.iCanGive.length})
+                  </div>
+                  <div style={{ display:"flex",flexWrap:"wrap",gap:5 }}>
+                    {comparison.iCanGive.map(s=>(
+                      <div key={s.id} style={{ background:"rgba(255,215,0,0.12)",border:"1.5px solid rgba(255,215,0,0.35)",borderRadius:7,padding:"4px 9px",fontSize:".72rem",fontWeight:800,color:gold }}>
+                        {s.team.flag} {s.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {comparison.iCanGet.length===0 && comparison.iCanGive.length===0 && (
+                <div style={{ textAlign:"center",padding:"20px",color:"var(--muted)" }}>
+                  <div style={{ fontSize:36,marginBottom:8 }}>🤷</div>
+                  <p style={{ fontSize:".85rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma troca possível com essa oferta.<br/>Vocês não têm o que o outro precisa.</p>
+                </div>
+              )}
             </div>
-          </>
-        )
+          )}
+        </div>
       )}
 
       <div style={{ height:14 }} />
@@ -1195,129 +1341,6 @@ function ProgressPage({ col}) {
 }
 
 // ─── WORLD MAP PAGE ───────────────────────────────────────────────────────────
-function WorldMapPage({ col}) {
-  const getTeamColor = (teamId) => {
-    if(!teamId) return "#1a1a2e";
-    const team = ALL_TEAMS.find(t=>t.id===teamId);
-    if(!team) return "#1a1a2e";
-    const {pct,full} = teamProgress(team,col);
-    if(full) return "#00c853";
-    if(pct>0) return "#FFD700";
-    return "#2a2a4a";
-  };
-
-  const legend=[
-    {color:green,label:"Completo"},
-    {color:gold,label:"Parcial"},
-    {color:"#2a2a4a",label:"Vazio"},
-    {color:"#1a1a2e",label:"Não participa"},
-  ];
-
-  // Simplified world map using country rectangles positioned on a grid
-  const regions = [
-    // North America
-    {iso:"CA",x:8,y:12,w:16,h:10},{iso:"US",x:8,y:22,w:16,h:8},{iso:"MX",x:6,y:30,w:10,h:6},
-    // Central America & Caribbean
-    {iso:"PA",x:12,y:36,w:4,h:3},{iso:"HT",x:16,y:30,w:4,h:4},
-    // South America
-    {iso:"CO",x:12,y:39,w:6,h:6},{iso:"EC",x:10,y:45,w:5,h:5},
-    {iso:"BR",x:16,y:39,w:12,h:16},{iso:"PY",x:16,y:55,w:5,h:5},
-    {iso:"AR",x:14,y:60,w:7,h:12},{iso:"UY",x:18,y:56,w:4,h:4},
-    // Europe
-    {iso:"GB-SCT",x:34,y:10,w:3,h:3},{iso:"GB-ENG",x:34,y:13,w:3,h:4},
-    {iso:"NO",x:36,y:8,w:4,h:5},{iso:"SE",x:38,y:10,w:3,h:6},
-    {iso:"FR",x:34,y:18,w:5,h:5},{iso:"ES",x:32,y:23,w:6,h:5},
-    {iso:"PT",x:30,y:23,w:3,h:4},{iso:"DE",x:38,y:15,w:5,h:5},
-    {iso:"NL",x:36,y:15,w:3,h:3},{iso:"BE",x:36,y:17,w:3,h:3},
-    {iso:"CH",x:38,y:19,w:3,h:3},{iso:"AT",x:40,y:18,w:4,h:3},
-    {iso:"HR",x:40,y:22,w:4,h:3},{iso:"CZ",x:40,y:15,w:4,h:3},
-    {iso:"BA",x:40,y:20,w:3,h:3},
-    // Africa
-    {iso:"MA",x:32,y:28,w:5,h:5},{iso:"DZ",x:34,y:28,w:7,h:6},
-    {iso:"TN",x:37,y:26,w:3,h:4},{iso:"EG",x:42,y:26,w:6,h:5},
-    {iso:"SN",x:28,y:34,w:4,h:4},{iso:"CI",x:30,y:38,w:4,h:4},
-    {iso:"GH",x:32,y:38,w:3,h:4},{iso:"NG",x:35,y:36,w:5,h:5},
-    {iso:"CD",x:40,y:40,w:7,h:7},{iso:"ZA",x:40,y:50,w:7,h:7},
-    // Middle East & Central Asia
-    {iso:"TR",x:46,y:22,w:6,h:4},{iso:"IQ",x:50,y:26,w:5,h:5},
-    {iso:"SA",x:48,y:30,w:6,h:6},{iso:"IR",x:52,y:24,w:7,h:6},
-    {iso:"JO",x:48,y:27,w:4,h:4},{iso:"QA",x:52,y:30,w:3,h:3},
-    {iso:"UZ",x:56,y:20,w:6,h:5},
-    // Asia Pacific
-    {iso:"JP",x:76,y:22,w:4,h:6},{iso:"KR",x:72,y:24,w:4,h:4},
-    {iso:"AU",x:68,y:50,w:12,h:10},{iso:"NZ",x:78,y:56,w:5,h:5},
-    // Special
-    {iso:"CV",x:26,y:30,w:3,h:3},{iso:"CW",x:16,y:34,w:3,h:3},
-  ];
-
-  return (
-    <div>
-      <div style={{ padding:"16px 12px 8px" }}>
-        <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>🗺️ MAPA-MÚNDI</h2>
-        <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Progresso das seleções no mundo</p>
-      </div>
-
-      {/* legend */}
-      <div style={{ display:"flex",gap:12,padding:"0 12px 10px",flexWrap:"wrap" }}>
-        {legend.map(l=>(
-          <div key={l.label} style={{ display:"flex",alignItems:"center",gap:5 }}>
-            <div style={{ width:12,height:12,borderRadius:3,background:l.color,border:"1px solid rgba(255,255,255,0.1)" }} />
-            <span style={{ fontSize:".65rem",color:"var(--muted)",fontWeight:700 }}>{l.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* map */}
-      <div style={{ margin:"0 12px 12px",background:"#0d1117",borderRadius:16,overflow:"hidden",border:"1px solid var(--bdr)",position:"relative" }}>
-        <svg viewBox="0 0 88 72" style={{ width:"100%",display:"block" }}>
-          {/* ocean background */}
-          <rect width="88" height="72" fill="#0d1117" />
-          {/* grid lines subtle */}
-          {[18,36,54,72].map(x=><line key={x} x1={x} y1={0} x2={x} y2={72} stroke="rgba(255,255,255,0.03)" strokeWidth=".3" />)}
-          {[18,36,54].map(y=><line key={y} x1={0} y1={y} x2={88} y2={y} stroke="rgba(255,255,255,0.03)" strokeWidth=".3" />)}
-
-          {regions.map(({iso,x,y,w,h})=>{
-            const teamId = COUNTRY_TO_TEAM[iso];
-            const color  = getTeamColor(teamId);
-            const team   = teamId ? ALL_TEAMS.find(t=>t.id===teamId) : null;
-            const {pct}  = team ? teamProgress(team,col) : {pct:0};
-            return (
-              <g key={iso}>
-                <rect x={x} y={y} width={w} height={h} fill={color} rx=".8" stroke="rgba(255,255,255,0.08)" strokeWidth=".3" />
-                {team && pct>0 && (
-                  <text x={x+w/2} y={y+h/2+1} textAnchor="middle" fontSize="1.8" fill="rgba(0,0,0,0.7)" fontWeight="bold">{pct}%</text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* country list */}
-      <div style={{ padding:"0 12px 8px" }}>
-        <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",color:"var(--muted)",marginBottom:8 }}>SELEÇÕES PARTICIPANTES</div>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5 }}>
-          {ALL_TEAMS.map(team=>{
-            const {pct,full,owned,total}=teamProgress(team,col);
-            return (
-              <div key={team.id} style={{ background:"var(--card)",border:`1px solid ${full?"rgba(0,200,83,.35)":pct>0?"rgba(255,215,0,.2)":bdr}`,borderRadius:9,padding:"7px 8px",display:"flex",alignItems:"center",gap:5 }}>
-                <span style={{ fontSize:16 }}>{team.flag}</span>
-                <div style={{ flex:1,minWidth:0 }}>
-                  <div style={{ fontFamily:font.title,fontSize:".65rem",letterSpacing:".5px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{team.code}</div>
-                  <div style={{ height:2,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden",marginTop:2 }}>
-                    <div style={{ height:"100%",width:pct+"%",background:full?green:`linear-gradient(90deg,${gold},${gold2})`,borderRadius:99 }} />
-                  </div>
-                </div>
-                <span style={{ fontSize:".5rem",fontWeight:800,color:full?green:muted,flexShrink:0 }}>{owned}/{total}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{ height:14 }} />
-    </div>
-  );
-}
 
 // ─── REPORTS PAGE ─────────────────────────────────────────────────────────────
 function ReportsPage({ col, onToast}) {
@@ -1528,12 +1551,6 @@ ${sections}
   }
 
   // ── RENDER ───────────────────────────────────────────────────────────────────
-  const txtCards=[
-    {label:"✅ Conseguidas (.txt)", desc:"Lista de texto para compartilhar.", type:"have", g:["#00c853","#009640"], dark:false},
-    {label:"❌ Faltando (.txt)",    desc:"Tudo que falta, em texto.",          type:"miss", g:["#448aff","#1565c0"], dark:false},
-    {label:"⭐ Repetidas (.txt)",   desc:"Suas repetidas com extras.",          type:"dbl",  g:["var(--accent)","var(--accent2)"], dark:true},
-    {label:"📋 Completo (.txt)",    desc:"Tudo em um único arquivo.",           type:"all",  g:["#ff6f00","#e65100"], dark:false},
-  ];
   const pdfCards=[
     {label:"🖨️ PDF — Tenho",       desc:"Figurinhas conseguidas. Ideal para mostrar nas trocas.", type:"have", g:["#00c853","#009640"], dark:false},
     {label:"🖨️ PDF — Faltam",      desc:"O que você ainda precisa conseguir.",                    type:"miss", g:["#448aff","#1565c0"], dark:false},
@@ -1543,7 +1560,7 @@ ${sections}
   return (
     <div style={{ padding:"16px 12px" }}>
       <h2 style={{ fontFamily:font.title,fontSize:"1.5rem",letterSpacing:"2px" }}>📊 RELATÓRIOS</h2>
-      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Exporte em .txt para compartilhar ou gere um PDF para imprimir.</p>
+      <p style={{ color:"var(--muted)",fontSize:".78rem",fontWeight:700,marginTop:2,marginBottom:16,lineHeight:1.5 }}>Gere PDFs para imprimir e levar nos postos de troca.</p>
 
       {/* PDF section */}
       <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>📄 IMPRIMIR / SALVAR PDF</div>
@@ -1560,20 +1577,6 @@ ${sections}
         <div style={{ background:"rgba(255,215,0,0.05)",border:"1px solid rgba(255,215,0,0.15)",borderRadius:10,padding:"10px 12px",fontSize:".7rem",color:"var(--muted)",fontWeight:700,lineHeight:1.55 }}>
           💡 O PDF abre em uma nova aba. Use <strong style={{color:"var(--text)"}}>Ctrl+P</strong> (desktop) ou <strong style={{color:"var(--text)"}}>Compartilhar → Imprimir</strong> (iPhone) para salvar ou imprimir.
         </div>
-      </div>
-
-      {/* TXT section */}
-      <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1.5px",color:"var(--muted)",marginBottom:10 }}>📝 EXPORTAR TEXTO (.TXT)</div>
-      <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-        {txtCards.map(c=>(
-          <div key={c.type} style={{ background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"12px" }}>
-            <h3 style={{ fontFamily:font.title,fontSize:".95rem",letterSpacing:1,marginBottom:3 }}>{c.label}</h3>
-            <p style={{ color:"var(--muted)",fontSize:".7rem",fontWeight:700,lineHeight:1.45,marginBottom:10 }}>{c.desc}</p>
-            <button onClick={()=>{dl(build(c.type),`copa2026-${c.type}.txt`);onToast("✅ Relatório exportado!","ok");}} style={{ width:"100%",padding:11,border:"none",borderRadius:9,fontFamily:font.title,fontSize:".9rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${c.g[0]},${c.g[1]})`,color:c.dark?"#000":"#fff",WebkitTapHighlightColor:"transparent" }}>
-              ⬇ EXPORTAR .TXT
-            </button>
-          </div>
-        ))}
       </div>
       <div style={{ height:14 }} />
     </div>
@@ -1770,7 +1773,7 @@ function BackupPage({ col, onImport, onToast}) {
   );
 }
 
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.5.0";
 
 // ─── SOBRE PAGE ───────────────────────────────────────────────────────────────
 function SobrePage({}) {
@@ -1941,7 +1944,6 @@ function HamburgerMenu({ onSelect}) {
     {id:"trade",    ico:"🔄", label:"Modo Troca"},
     {id:"packets",  ico:"📦", label:"Pacotes"},
     {id:"progress", ico:"📊", label:"Progresso"},
-    {id:"map",      ico:"🗺️", label:"Mapa-Múndi"},
     {id:"reports",  ico:"📋", label:"Relatórios"},
     {id:"sync",     ico:"🔗", label:"Sincronizar"},
     {id:"backup",   ico:"💾", label:"Backup"},
@@ -1971,7 +1973,7 @@ function HamburgerMenu({ onSelect}) {
 const PAGE_TITLES = {
   album:"COPA 2026", doubles:"REPETIDAS", have:"TENHO", miss:"FALTAM",
   search:"BUSCA RÁPIDA", trade:"MODO TROCA", packets:"PACOTES",
-  progress:"PROGRESSO", map:"MAPA-MÚNDI", reports:"RELATÓRIOS",
+  progress:"PROGRESSO", reports:"RELATÓRIOS",
   sync:"SINCRONIZAR", backup:"BACKUP", theme:"APARÊNCIA", sobre:"SOBRE",
 };
 
@@ -2085,7 +2087,6 @@ export default function App() {
           {page==="trade"   && <TradePage    col={col} onToast={showToast}  />}
           {page==="packets" && <PacketsPage  packets={packets} onAdd={addPacket} onRemove={removePacket} onReset={resetPackets} avulsas={avulsas} onAddAvu={addAvulsa} onRemoveAvu={removeAvulsa} onResetAvu={resetAvulsas} onToast={showToast}  />}
           {page==="progress"&& <ProgressPage col={col}  />}
-          {page==="map"     && <WorldMapPage col={col}  />}
           {page==="reports" && <ReportsPage  col={col} onToast={showToast}  />}
           {page==="backup"  && <BackupPage   col={col} onImport={importCol} onToast={showToast}  />}
           {page==="sync"    && <SyncPage     col={col} onImport={importCol} onToast={showToast}  />}

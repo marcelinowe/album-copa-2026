@@ -410,7 +410,7 @@ function StickerCell({ s, qty, onInc, onDec, locked}) {
   const bc    = st==="have"?green:st==="dbl"?gold:bdr;
   const stkBg = st==="have"?"linear-gradient(135deg,rgba(0,200,83,.13),rgba(0,200,83,.03))":st==="dbl"?"linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,165,0,.05))":"rgba(255,255,255,0.02)";
   const lc    = st==="have"?"#69ff94":st==="dbl"?gold:muted;
-  const qb    = { width:17,height:17,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"var(--text)",borderRadius:4,fontSize:13,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
+  const qb    = { width:28,height:28,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"var(--text)",borderRadius:6,fontSize:18,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
   return (
     <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:stkBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
       {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:15,height:15,background:gold,color:"#000",borderRadius:"50%",fontSize:".5rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}

@@ -736,7 +736,7 @@ function TradePage({ col, onToast}) {
       const byTeam={};
       dbl.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
       Object.values(byTeam).forEach(({team,items})=>{
-        lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${s.label}${s.extra>1?"(x"+s.extra+")":""}`).join(", ")}`);
+        lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${+s.id.split("-")[1]}${s.extra>1?"(x"+s.extra+")":""}`).join(",")}`);
       });
       lines.push("");
     }
@@ -745,7 +745,7 @@ function TradePage({ col, onToast}) {
       const byTeamM={};
       miss.forEach(s=>{ (byTeamM[s.team.id]=byTeamM[s.team.id]||{team:s.team,items:[]}).items.push(s); });
       Object.values(byTeamM).forEach(({team,items})=>{
-        lines.push(`${team.flag} ${team.code}: ${items.map(s=>s.label).join(", ")}`);
+        lines.push(`${team.flag} ${team.code}: ${items.map(s=>+s.id.split("-")[1]).join(",")}`);
       });
       lines.push("");
     }
@@ -763,7 +763,7 @@ function TradePage({ col, onToast}) {
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
-      lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${s.label}${s.extra>1?"(x"+s.extra+")":""}`).join(", ")}`);
+      lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${+s.id.split("-")[1]}${s.extra>1?"(x"+s.extra+")":""}`).join(",")}`);
     });
     lines.push("");
     lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
@@ -779,7 +779,7 @@ function TradePage({ col, onToast}) {
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
-      lines.push(`${team.flag} ${team.code}: ${items.map(s=>s.label).join(", ")}`);
+      lines.push(`${team.flag} ${team.code}: ${items.map(s=>+s.id.split("-")[1]).join(",")}`);
     });
     lines.push("");
     lines.push(`📋 Total: ${items.length} figurinha${items.length!==1?"s":""} que preciso`);

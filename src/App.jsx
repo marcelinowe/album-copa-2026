@@ -730,9 +730,28 @@ function TradePage({ col, onToast}) {
     const dbl  = allDoubles.filter(s=>selected.has(s.id));
     const miss = allMissing.filter(s=>selectedMiss.has(s.id));
     if(!dbl.length && !miss.length){ onToast("Selecione figurinhas primeiro","err"); return; }
-    const txt  = buildOfferText(dbl, miss);
-    const msg  = txt + "\n\nCole esse texto no app Álbum Copa 2026 → Modo Troca → Comparar Trocas para ver o que podemos trocar!";
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`,"_blank");
+    const lines = ["🏆 *OFERTA DE TROCA - Copa 2026*", ""];
+    if(dbl.length) {
+      lines.push("*TENHO:*");
+      const byTeam={};
+      dbl.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
+      Object.values(byTeam).forEach(({team,items})=>{
+        lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${+s.id.split("-")[1]}${s.extra>1?"(x"+s.extra+")":""}`).join(",")}`);
+      });
+      lines.push("");
+    }
+    if(miss.length) {
+      lines.push("*PRECISO:*");
+      const byTeamM={};
+      miss.forEach(s=>{ (byTeamM[s.team.id]=byTeamM[s.team.id]||{team:s.team,items:[]}).items.push(s); });
+      Object.values(byTeamM).forEach(({team,items})=>{
+        lines.push(`${team.flag} ${team.code}: ${items.map(s=>+s.id.split("-")[1]).join(",")}`);
+      });
+      lines.push("");
+    }
+    lines.push("Para comparar trocas, cole no app Copa 2026 → Modo Troca → Comparar:");
+    lines.push(buildOfferText(dbl, miss));
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
     onToast("✅ Oferta enviada!","ok");
   }
 
@@ -744,10 +763,9 @@ function TradePage({ col, onToast}) {
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
-      lines.push(`${team.flag} *${team.name}*`);
-      lines.push(items.map(s=>`${s.label}${s.extra>1?" ("+s.extra+"x)":""}`).join(", "));
-      lines.push("");
+      lines.push(`${team.flag} ${team.code}: ${items.map(s=>`${+s.id.split("-")[1]}${s.extra>1?"(x"+s.extra+")":""}`).join(",")}`);
     });
+    lines.push("");
     lines.push(`📦 Total: ${items.length} figurinha${items.length!==1?"s":""} para trocar`);
     lines.push("_Álbum Copa 2026_");
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
@@ -761,10 +779,9 @@ function TradePage({ col, onToast}) {
     const byTeam={};
     items.forEach(s=>{ (byTeam[s.team.id]=byTeam[s.team.id]||{team:s.team,items:[]}).items.push(s); });
     Object.values(byTeam).forEach(({team,items})=>{
-      lines.push(`${team.flag} *${team.name}*`);
-      lines.push(items.map(s=>s.label).join(", "));
-      lines.push("");
+      lines.push(`${team.flag} ${team.code}: ${items.map(s=>+s.id.split("-")[1]).join(",")}`);
     });
+    lines.push("");
     lines.push(`📋 Total: ${items.length} figurinha${items.length!==1?"s":""} que preciso`);
     lines.push("_Álbum Copa 2026_");
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");

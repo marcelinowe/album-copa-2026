@@ -526,7 +526,7 @@ function AlbumPage({ col, onUpdate, onNavigate, onGroupComplete, locked}) {
 
   const vals=Object.values(col);
   const have=vals.filter(v=>v>0).length;
-  const dbl=vals.filter(v=>v>1).length;
+  const dbl=vals.filter(v=>v>1).reduce((a,v)=>a+(v-1),0);
   const miss=TOTAL-have;
   const pct=Math.round((have/TOTAL)*100);
 
@@ -704,9 +704,6 @@ function parseOfferText(text) {
 function TradePage({ col, onToast}) {
   const [selected,     setSelected]     = useState(new Set());
   const [selectedMiss, setSelectedMiss] = useState(new Set());
-  const [tab,          setTab]          = useState("mine");   // "mine" | "compare"
-  const [offerText,    setOfferText]    = useState("");
-  const [comparison,   setComparison]   = useState(null);
 
   // Build doubles list
   const allDoubles = [];
@@ -749,8 +746,6 @@ function TradePage({ col, onToast}) {
       });
       lines.push("");
     }
-    lines.push("Para comparar trocas, cole no app Copa 2026 → Modo Troca → Comparar:");
-    lines.push(buildOfferText(dbl, miss));
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
     onToast("✅ Oferta enviada!","ok");
   }
@@ -787,43 +782,6 @@ function TradePage({ col, onToast}) {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");
   }
 
-  // Compare offer from other person
-  function compareOffer() {
-    if(!offerText.trim()){ onToast("Cole o texto da oferta primeiro","err"); return; }
-    const parsed = parseOfferText(offerText.trim());
-    if(!parsed){ onToast("❌ Texto inválido — deve ser uma oferta do app Copa 2026","err"); return; }
-
-    // Build lookup maps
-    const allStickerMap = {};
-    ORDERED_STICKERS.forEach(s => allStickerMap[s.id] = s);
-
-    // What THEY have (their doubles) that I NEED (my missing)
-    const iCanGet = parsed.doubles
-      .map(id => allStickerMap[id])
-      .filter(s => s && (col[s.id]||0)===0); // I don't have it
-
-    // What I HAVE (my doubles selected) that THEY NEED (their missing)
-    const iCanGive = parsed.missing
-      .map(id => allStickerMap[id])
-      .filter(s => s && (col[s.id]||0)>1); // I have extra
-
-    setComparison({ iCanGet, iCanGive, parsed });
-    if(!iCanGet.length && !iCanGive.length){
-      onToast("Nenhuma troca possível encontrada","err");
-    } else {
-      onToast(`✅ ${iCanGet.length + iCanGive.length} trocas possíveis!`,"ok");
-    }
-  }
-
-  const tabStyle = (active) => ({
-    flex:1, padding:"10px", border:"none", borderRadius:10,
-    fontFamily:font.body, fontSize:".8rem", fontWeight:800, cursor:"pointer",
-    WebkitTapHighlightColor:"transparent",
-    background: active ? `linear-gradient(135deg,${gold},${gold2})` : "var(--card)",
-    color: active ? "#000" : "var(--muted)",
-    transition:"all .2s",
-  });
-
   const chipStyle = (sel, selColor) => ({
     background: sel ? `linear-gradient(135deg,${selColor}30,${selColor}15)` : "rgba(255,255,255,0.03)",
     border: `1.5px solid ${sel ? selColor : bdr}`,
@@ -840,166 +798,77 @@ function TradePage({ col, onToast}) {
         <p style={{ color:"var(--muted)",fontSize:".8rem",fontWeight:700,marginTop:2 }}>Gerencie suas trocas e compare com outras coleções</p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex",gap:6,margin:"0 12px 12px",background:"var(--card2)",borderRadius:12,padding:4 }}>
-        <button onClick={()=>setTab("mine")}    style={tabStyle(tab==="mine")}>🔄 Minhas Trocas</button>
-        <button onClick={()=>setTab("compare")} style={tabStyle(tab==="compare")}>🤝 Comparar</button>
-      </div>
-
-      {/* ── MINHAS TROCAS TAB ── */}
-      {tab==="mine" && (
-        <div>
-          {/* Share full offer button */}
-          <div style={{ margin:"0 12px 12px",background:"rgba(37,211,102,0.06)",border:"1px solid rgba(37,211,102,0.25)",borderRadius:13,padding:"12px 14px" }}>
-            <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",marginBottom:4 }}>📤 ENVIAR OFERTA COMPLETA</div>
-            <p style={{ fontSize:".72rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:10 }}>
-              Selecione abaixo o que você tem para dar e o que precisa, depois envie a oferta. A outra pessoa cola no app dela para comparar automaticamente.
-            </p>
-            <button onClick={shareOffer} style={{ width:"100%",padding:12,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent" }}>
-              📲 ENVIAR OFERTA NO WHATSAPP
-            </button>
-          </div>
-
-          {/* Doubles section */}
-          <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
-            ⭐ TENHO PARA DAR — {allDoubles.length} tipos repetidos
-          </div>
-          {allDoubles.length===0 ? (
-            <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>Nenhuma repetida ainda.</div>
-          ) : (
-            <>
-              <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
-                <button onClick={toggleAll} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
-                  {selected.size===allDoubles.length?"Desmarcar":"Selecionar tudo"}
-                </button>
-                <button onClick={shareDoublesWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                  📲 Só repetidas
-                </button>
-              </div>
-              <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
-                {allDoubles.map(s=>{
-                  const sel=selected.has(s.id);
-                  return (
-                    <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#25D366")}>
-                      {s.team.flag} {s.label}
-                      {s.extra>1 && <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 5px",fontSize:".6rem" }}>({s.extra}x)</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Missing section */}
-          <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
-            ❌ PRECISO — {allMissing.length} figurinhas faltando
-          </div>
-          {allMissing.length===0 ? (
-            <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>🏆 Álbum completo!</div>
-          ) : (
-            <>
-              <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
-                <button onClick={toggleAllMiss} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
-                  {selectedMiss.size===allMissing.length?"Desmarcar":"Selecionar tudo"}
-                </button>
-                <button onClick={shareMissingWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-                  📲 Só faltando
-                </button>
-              </div>
-              <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
-                {allMissing.map(s=>{
-                  const sel=selectedMiss.has(s.id);
-                  return (
-                    <div key={s.id} onClick={()=>setSelectedMiss(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#ff5252")}>
-                      {s.team.flag} {s.label}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+      <div>
+        {/* Share full offer button */}
+        <div style={{ margin:"0 12px 12px",background:"rgba(37,211,102,0.06)",border:"1px solid rgba(37,211,102,0.25)",borderRadius:13,padding:"12px 14px" }}>
+          <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",marginBottom:4 }}>📤 ENVIAR OFERTA COMPLETA</div>
+          <p style={{ fontSize:".72rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:10 }}>
+            Selecione abaixo o que você tem para dar e o que precisa, depois envie a oferta completa pelo WhatsApp.
+          </p>
+          <button onClick={shareOffer} style={{ width:"100%",padding:12,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",WebkitTapHighlightColor:"transparent" }}>
+            📲 ENVIAR OFERTA NO WHATSAPP
+          </button>
         </div>
-      )}
 
-      {/* ── COMPARAR TAB ── */}
-      {tab==="compare" && (
-        <div>
-          <div style={{ margin:"0 12px 12px",background:"var(--card)",border:"1px solid var(--bdr)",borderRadius:13,padding:"14px" }}>
-            <div style={{ fontFamily:font.title,fontSize:".9rem",letterSpacing:"1px",marginBottom:6 }}>📋 COLE A OFERTA AQUI</div>
-            <p style={{ fontSize:".72rem",color:"var(--muted)",fontWeight:700,lineHeight:1.5,marginBottom:10 }}>
-              Peça para a outra pessoa enviar a oferta dela pelo WhatsApp, copie o texto e cole abaixo.
-            </p>
-            <textarea
-              value={offerText}
-              onChange={e=>{ setOfferText(e.target.value); setComparison(null); }}
-              placeholder={"Cole aqui o texto da oferta...\n\n🏆 OFERTA DE TROCA - Copa 2026\nTENHO: BRA-1,ARG-5,...\nPRECISO: FRA-7,GER-2,..."}
-              rows={6}
-              style={{ width:"100%",padding:"10px 12px",background:"var(--card2)",border:"1.5px solid var(--bdr)",borderRadius:10,color:"var(--text)",fontFamily:font.body,fontSize:".78rem",outline:"none",resize:"vertical",lineHeight:1.5 }}
-            />
-            <button onClick={compareOffer} style={{ width:"100%",marginTop:10,padding:12,border:"none",borderRadius:10,fontFamily:font.title,fontSize:"1rem",letterSpacing:"1.5px",cursor:"pointer",background:`linear-gradient(135deg,${gold},${gold2})`,color:"#000",WebkitTapHighlightColor:"transparent" }}>
-              🔍 COMPARAR TROCAS
-            </button>
-          </div>
-
-          {/* Comparison results */}
-          {comparison && (
-            <div>
-              {/* Summary */}
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"0 12px 12px" }}>
-                <div style={{ background:"rgba(0,200,83,0.08)",border:"1.5px solid rgba(0,200,83,0.3)",borderRadius:13,padding:"12px",textAlign:"center" }}>
-                  <div style={{ fontFamily:font.title,fontSize:"2rem",color:green }}>{comparison.iCanGet.length}</div>
-                  <div style={{ fontSize:".65rem",color:green,fontWeight:800,textTransform:"uppercase",marginTop:2 }}>Você recebe</div>
-                  <div style={{ fontSize:".62rem",color:"var(--muted)",fontWeight:700,marginTop:2 }}>que ela tem e você precisa</div>
-                </div>
-                <div style={{ background:"rgba(255,215,0,0.08)",border:"1.5px solid rgba(255,215,0,0.3)",borderRadius:13,padding:"12px",textAlign:"center" }}>
-                  <div style={{ fontFamily:font.title,fontSize:"2rem",color:gold }}>{comparison.iCanGive.length}</div>
-                  <div style={{ fontSize:".65rem",color:gold,fontWeight:800,textTransform:"uppercase",marginTop:2 }}>Você dá</div>
-                  <div style={{ fontSize:".62rem",color:"var(--muted)",fontWeight:700,marginTop:2 }}>que você tem extra e ela precisa</div>
-                </div>
-              </div>
-
-              {/* You receive */}
-              {comparison.iCanGet.length > 0 && (
-                <div style={{ padding:"0 12px 12px" }}>
-                  <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:green,marginBottom:8 }}>
-                    ✅ VOCÊ RECEBE ({comparison.iCanGet.length})
-                  </div>
-                  <div style={{ display:"flex",flexWrap:"wrap",gap:5 }}>
-                    {comparison.iCanGet.map(s=>(
-                      <div key={s.id} style={{ background:"rgba(0,200,83,0.12)",border:"1.5px solid rgba(0,200,83,0.35)",borderRadius:7,padding:"4px 9px",fontSize:".72rem",fontWeight:800,color:green }}>
-                        {s.team.flag} {s.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* You give */}
-              {comparison.iCanGive.length > 0 && (
-                <div style={{ padding:"0 12px 12px" }}>
-                  <div style={{ fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:gold,marginBottom:8 }}>
-                    ⭐ VOCÊ DÁ ({comparison.iCanGive.length})
-                  </div>
-                  <div style={{ display:"flex",flexWrap:"wrap",gap:5 }}>
-                    {comparison.iCanGive.map(s=>(
-                      <div key={s.id} style={{ background:"rgba(255,215,0,0.12)",border:"1.5px solid rgba(255,215,0,0.35)",borderRadius:7,padding:"4px 9px",fontSize:".72rem",fontWeight:800,color:gold }}>
-                        {s.team.flag} {s.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {comparison.iCanGet.length===0 && comparison.iCanGive.length===0 && (
-                <div style={{ textAlign:"center",padding:"20px",color:"var(--muted)" }}>
-                  <div style={{ fontSize:36,marginBottom:8 }}>🤷</div>
-                  <p style={{ fontSize:".85rem",fontWeight:700,lineHeight:1.6 }}>Nenhuma troca possível com essa oferta.<br/>Vocês não têm o que o outro precisa.</p>
-                </div>
-              )}
+        {/* Doubles section */}
+        <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
+          ⭐ TENHO PARA DAR — {allDoubles.length} tipos repetidos
+        </div>
+        {allDoubles.length===0 ? (
+          <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>Nenhuma repetida ainda.</div>
+        ) : (
+          <>
+            <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
+              <button onClick={toggleAll} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
+                {selected.size===allDoubles.length?"Desmarcar":"Selecionar tudo"}
+              </button>
+              <button onClick={shareDoublesWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                📲 Só repetidas
+              </button>
             </div>
-          )}
+            <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
+              {allDoubles.map(s=>{
+                const sel=selected.has(s.id);
+                return (
+                  <div key={s.id} onClick={()=>setSelected(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#25D366")}>
+                    {s.team.flag} {s.label}
+                    {s.extra>1 && <span style={{ background:sel?"#25D366":gold,color:"#000",borderRadius:20,padding:"1px 5px",fontSize:".6rem" }}>({s.extra}x)</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Missing section */}
+        <div style={{ padding:"0 12px 6px",fontFamily:font.title,fontSize:".85rem",letterSpacing:"1px",color:"var(--muted)" }}>
+          ❌ PRECISO — {allMissing.length} figurinhas faltando
         </div>
-      )}
+        {allMissing.length===0 ? (
+          <div style={{ textAlign:"center",padding:"16px",color:"var(--muted)",fontSize:".8rem",fontWeight:700 }}>🏆 Álbum completo!</div>
+        ) : (
+          <>
+            <div style={{ display:"flex",gap:8,padding:"0 12px 8px" }}>
+              <button onClick={toggleAllMiss} style={{ flex:1,padding:"8px",border:"1px solid var(--bdr)",borderRadius:9,background:"var(--card)",color:"var(--text)",fontFamily:font.body,fontSize:".75rem",fontWeight:800,cursor:"pointer" }}>
+                {selectedMiss.size===allMissing.length?"Desmarcar":"Selecionar tudo"}
+              </button>
+              <button onClick={shareMissingWhatsApp} style={{ flex:1,padding:"8px",border:"none",borderRadius:9,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",fontFamily:font.title,fontSize:".8rem",letterSpacing:"1px",cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
+                📲 Só faltando
+              </button>
+            </div>
+            <div style={{ display:"flex",flexWrap:"wrap",gap:5,padding:"0 12px 14px" }}>
+              {allMissing.map(s=>{
+                const sel=selectedMiss.has(s.id);
+                return (
+                  <div key={s.id} onClick={()=>setSelectedMiss(p=>{ const n=new Set(p); sel?n.delete(s.id):n.add(s.id); return n; })} style={chipStyle(sel,"#ff5252")}>
+                    {s.team.flag} {s.label}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
 
       <div style={{ height:14 }} />
     </div>

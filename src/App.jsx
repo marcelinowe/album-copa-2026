@@ -413,18 +413,18 @@ function StickerCell({ s, qty, onInc, onDec, locked}) {
   const qb    = { width:28,height:28,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.07)",color:"var(--text)",borderRadius:6,fontSize:18,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,WebkitTapHighlightColor:"transparent" };
   return (
     <div onClick={locked?undefined:onInc} style={{ aspectRatio:"3/4",borderRadius:9,border:`2px solid ${bc}`,background:stkBg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:locked?"default":"pointer",position:"relative",userSelect:"none",WebkitTapHighlightColor:"transparent",overflow:"hidden",opacity:locked?0.75:1 }}>
-      {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:15,height:15,background:gold,color:"#000",borderRadius:"50%",fontSize:".5rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}
+      {qty>1&&<div style={{ position:"absolute",top:2,right:2,width:18,height:18,background:gold,color:"#000",borderRadius:"50%",fontSize:".65rem",fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center" }}>{qty}</div>}
       <div style={{ fontSize:17,marginBottom:1 }}>{ico}</div>
       <div style={{ fontSize:".65rem",fontWeight:800,color:lc,textTransform:"uppercase",letterSpacing:".2px",textAlign:"center",lineHeight:1.2 }}>{s.label}</div>
       {qty>0&&!locked&&(
         <div style={{ display:"flex",alignItems:"center",gap:1,marginTop:2 }} onClick={e=>e.stopPropagation()}>
           <button onClick={onDec} style={qb}>−</button>
-          <span style={{ fontSize:".58rem",fontWeight:800,minWidth:11,textAlign:"center" }}>{qty}</span>
+          <span style={{ fontSize:".65rem",fontWeight:800,minWidth:11,textAlign:"center" }}>{qty}</span>
           <button onClick={onInc} style={qb}>+</button>
         </div>
       )}
       {qty>0&&locked&&(
-        <div style={{ fontSize:".58rem",fontWeight:800,minWidth:11,textAlign:"center",marginTop:2,color:lc }}>{qty}x</div>
+        <div style={{ fontSize:".65rem",fontWeight:800,minWidth:11,textAlign:"center",marginTop:2,color:lc }}>{qty}x</div>
       )}
     </div>
   );
